@@ -39,7 +39,7 @@ axiosInstance.interceptors.response.use(
                 
                 toast.error('Sesi Anda telah berakhir. Silakan login kembali.', { icon: React.createElement(Lock, { size: 20 }) });
                 setTimeout(() => {
-                    window.location.href = '/login';
+                    window.location.href = import.meta.env.BASE_URL + 'login';
                 }, 2000);
             } else if (status === 403) {
                 toast.error('Anda tidak memiliki akses ke resource ini.', { icon: React.createElement(ShieldAlert, { size: 20 }) });

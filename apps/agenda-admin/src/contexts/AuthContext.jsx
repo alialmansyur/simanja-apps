@@ -75,7 +75,7 @@ export const AuthProvider = ({ children }) => {
             sessionStorage.removeItem('mfa_banner_dismissed');
             setUser(null);
             setIsAuthenticated(false);
-            window.location.href = '/login';
+            window.location.href = import.meta.env.BASE_URL + 'login';
         }
     };
 
