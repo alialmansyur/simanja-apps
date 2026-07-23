@@ -1,0 +1,78 @@
+version: '3.8'
+
+services:
+  agenda-db:
+    image: mysql:8.0
+    container_name: agenda-db
+    restart: unless-stopped
+    ports:
+      - "8101:3306"
+    command: --skip-name-resolve
+    environment:
+      MYSQL_DATABASE: ${DB_DATABASE:-agenda_db}
+      MYSQL_ROOT_PASSWORD: ${DB_PASSWORD:-secret}
+      MYSQL_PASSWORD: ${DB_PASSWORD:-secret}
+      MYSQL_USER: ${DB_USERNAME:-agenda_user}
+    volumes:
+      - agenda-mysql-data:/var/lib/mysql
+    networks:
+      - agenda-network
+
+  agenda-backend:
+    build:
+      context: ./apps/agenda-backend
+      dockerfile: Dockerfile
+    container_name: agenda-backend
+    restart: unless-stopped
+    ports:
+      - "8102:80"
+    environment:
+      DB_CONNECTION: mysql
+      DB_HOST: agenda-db
+      DB_PORT: 3306
+      DB_DATABASE: ${DB_DATABASE:-agenda_db}
+      DB_USERNAME: ${DB_USERNAME:-agenda_user}
+      DB_PASSWORD: ${DB_PASSWORD:-secret}
+    volumes:
+      - ./apps/agenda-backend:/var/www/html
+    depends_on:
+      - agenda-db
+    networks:
+      - agenda-network
+
+  agenda-dashboard:
+    build:
+      context: ./apps/agenda-dashboard
+      dockerfile: Dockerfile
+    container_name: agenda-dashboard
+    restart: unless-stopped
+    ports:
+      - "8103:5173"
+    volumes:
+      - ./apps/agenda-dashboard:/app
+      - /app/node_modules
+    networks:
+      - agenda-network
+    command: sh -c "npm install && npm run dev -- --host"
+
+  agenda-admin:
+    build:
+      context: ./apps/agenda-admin
+      dockerfile: Dockerfile
+    container_name: agenda-admin
+    restart: unless-stopped
+    ports:
+      - "8104:5173"
+    volumes:
+      - ./apps/agenda-admin:/app
+      - /app/node_modules
+    networks:
+      - agenda-network
+    command: sh -c "npm install && npm run dev -- --host"
+
+networks:
+  agenda-network:
+    driver: bridge
+
+volumes:
+  agenda-mysql-data:

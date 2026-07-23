@@ -1,0 +1,533 @@
+@import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:ital,wght@0,200..800;1,200..800&display=swap');
+@import "tailwindcss";
+@custom-variant dark (&:is(.dark *));
+
+@theme {
+  --font-sans: 'Plus Jakarta Sans', ui-sans-serif, system-ui, sans-serif;
+}
+
+@keyframes marquee {
+  from {
+    transform: translateX(100vw);
+  }
+  to {
+    transform: translateX(-100%);
+  }
+}
+
+@keyframes shimmer {
+  100% {
+    transform: translateX(100%);
+  }
+}
+
+@keyframes modalOverlayFade {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes modalCardIn {
+  from {
+    opacity: 0;
+    transform: translateY(18px) scale(0.97);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+html {
+  font-size: 17px;
+}
+
+.scrollbar-hide::-webkit-scrollbar {
+  display: none;
+}
+.scrollbar-hide {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+
+.delay-100 { animation-delay: 100ms; }
+.delay-200 { animation-delay: 200ms; }
+.delay-300 { animation-delay: 300ms; }
+
+:root {
+  --radius-card: 1.25rem;
+  font-family: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, 'Open Sans', 'Helvetica Neue', sans-serif;
+  line-height: 1.5;
+  font-weight: 400;
+
+  color-scheme: light dark;
+  color: rgba(255, 255, 255, 0.87);
+  background-color: #242424;
+
+  font-synthesis: none;
+  text-rendering: optimizeLegibility;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+body {
+  margin: 0;
+  font-family: inherit;
+}
+
+button,
+input,
+select,
+textarea {
+  font: inherit;
+}
+
+button,
+input:not([type="checkbox"]):not([type="radio"]),
+select,
+textarea {
+  font-family: var(--font-sans) !important;
+  font-size: 17px !important;
+  font-weight: 700 !important;
+  line-height: 1.2 !important;
+  letter-spacing: 0.01em;
+  padding-top: 0.7em !important;
+  padding-bottom: 0.7em !important;
+  border-radius: 0.95em !important;
+}
+
+table,
+table * {
+  font-family: var(--font-sans) !important;
+}
+
+table thead th,
+table thead th button,
+table thead th span {
+  font-family: var(--font-sans) !important;
+  font-size: 11px !important;
+  font-weight: 800 !important;
+  letter-spacing: 0.22em !important;
+  line-height: 1.2 !important;
+  text-transform: uppercase !important;
+}
+
+.admin-toolbar-control {
+  display: inline-flex !important;
+  align-items: center !important;
+  gap: 0.5rem !important;
+  min-height: 42px !important;
+  padding: 0.7em 1em !important;
+  border-radius: 0.95em !important;
+  font-family: var(--font-sans) !important;
+  font-size: 15px !important;
+  font-weight: 700 !important;
+  line-height: 1.2 !important;
+  letter-spacing: 0.01em !important;
+  box-sizing: border-box !important;
+}
+
+.admin-toolbar-control select,
+.admin-toolbar-control button,
+.admin-toolbar-control span {
+  font-family: var(--font-sans) !important;
+  font-size: 15px !important;
+  font-weight: 700 !important;
+  line-height: 1.2 !important;
+}
+
+.admin-toolbar-control select {
+  appearance: none !important;
+  -webkit-appearance: none !important;
+  -moz-appearance: none !important;
+  min-height: auto !important;
+  padding: 0 !important;
+  margin: 0 !important;
+  border: 0 !important;
+  border-radius: 0 !important;
+  background: transparent !important;
+  box-shadow: none !important;
+}
+
+.admin-filter-field {
+  height: 52px !important;
+  border-radius: 1em !important;
+  font-family: var(--font-sans) !important;
+  font-size: 15px !important;
+  font-weight: 700 !important;
+  line-height: 1.2 !important;
+  box-sizing: border-box !important;
+}
+
+.admin-filter-input-shell {
+  display: flex !important;
+  align-items: center !important;
+  gap: 0.75rem !important;
+  width: 100% !important;
+  padding: 0 0.9rem !important;
+}
+
+.admin-filter-field::placeholder,
+.admin-filter-input-shell input::placeholder {
+  font-family: var(--font-sans) !important;
+  font-size: 15px !important;
+  font-weight: 500 !important;
+}
+
+.admin-filter-datepicker {
+  width: 100% !important;
+}
+
+.admin-filter-datepicker .react-datepicker-wrapper,
+.admin-filter-datepicker .react-datepicker__input-container,
+.admin-datepicker-wrapper,
+.admin-datepicker-wrapper .react-datepicker-wrapper,
+.admin-datepicker-wrapper .react-datepicker__input-container {
+  display: block !important;
+  width: 100% !important;
+}
+
+.admin-filter-datepicker input {
+  width: 100% !important;
+  height: 52px !important;
+  border-radius: 0.95em !important;
+  padding: 0 2.75rem 0 0.95rem !important;
+  font-family: var(--font-sans) !important;
+  font-size: 15px !important;
+  font-weight: 700 !important;
+  line-height: 1.2 !important;
+  box-sizing: border-box !important;
+}
+
+.admin-filter-select .admin-react-select__control {
+  min-height: 42px !important;
+  height: 42px !important;
+  border-radius: 0.95em !important;
+  border-color: rgb(226 232 240) !important;
+  box-shadow: none !important;
+  background: white !important;
+}
+
+.admin-filter-select .admin-react-select__value-container {
+  min-height: 40px !important;
+  height: 42px !important;
+  padding: 0 0.95rem !important;
+  
+}
+
+.admin-filter-select .admin-react-select__input-container,
+.admin-filter-select .admin-react-select__single-value,
+.admin-filter-select .admin-react-select__placeholder,
+.admin-filter-select .admin-react-select__option,
+.admin-filter-select .admin-react-select__menu,
+.admin-filter-select .admin-react-select__menu-list {
+  font-family: var(--font-sans) !important;
+  font-size: 15px !important;
+  font-weight: 700 !important;
+}
+
+.admin-filter-select .admin-react-select__indicators {
+  min-height: 40px !important;
+  height: 100% !important;
+}
+
+.admin-filter-select .admin-react-select__indicator-separator {
+  display: none !important;
+}
+
+.admin-filter-select .admin-react-select__menu {
+  border-radius: 0.95em !important;
+  overflow: hidden !important;
+}
+
+.dark .admin-filter-select .admin-react-select__control {
+  background: #0f172a !important;
+  border-color: rgb(30 41 59) !important;
+}
+
+.dark .admin-filter-select .admin-react-select__single-value,
+.dark .admin-filter-select .admin-react-select__placeholder,
+.dark .admin-filter-select .admin-react-select__input-container {
+  color: #f8fafc !important;
+}
+
+.dark .admin-filter-select .admin-react-select__menu {
+  background: #0f172a !important;
+}
+
+.dark .admin-filter-select .admin-react-select__option {
+  background: #0f172a !important;
+  color: #f8fafc !important;
+}
+
+.dark .admin-filter-select .admin-react-select__option--is-focused {
+  background: #1e293b !important;
+}
+
+.react-datepicker-popper {
+  z-index: 50 !important;
+}
+
+.react-datepicker {
+  border-radius: 1rem !important;
+  border-color: rgb(226 232 240) !important;
+  font-family: var(--font-sans) !important;
+}
+
+.react-datepicker__header {
+  border-top-left-radius: 1rem !important;
+  border-top-right-radius: 1rem !important;
+  font-family: var(--font-sans) !important;
+}
+
+.react-datepicker__current-month,
+.react-datepicker__day-name,
+.react-datepicker__day {
+  font-family: var(--font-sans) !important;
+}
+
+.dark .react-datepicker {
+  background: #0f172a !important;
+  border-color: rgb(30 41 59) !important;
+}
+
+.dark .react-datepicker__header {
+  background: #020817 !important;
+  border-bottom-color: rgb(30 41 59) !important;
+}
+
+.dark .react-datepicker__current-month,
+.dark .react-datepicker__day-name,
+.dark .react-datepicker__day,
+.dark .react-datepicker__navigation-icon::before {
+  color: #e2e8f0 !important;
+}
+
+.dark .react-datepicker__day:hover {
+  background: rgb(30 41 59) !important;
+}
+
+* {
+  scrollbar-width: none;
+}
+
+*::-webkit-scrollbar {
+  display: none;
+}
+
+.animate-modal-overlay {
+  animation: modalOverlayFade 220ms ease-out forwards;
+}
+
+.animate-modal-card {
+  animation: modalCardIn 260ms cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+.admin-swal-container {
+  backdrop-filter: blur(6px);
+}
+
+.admin-swal-popup {
+  border-radius: 0.95em;
+  border: 1px solid rgba(148, 163, 184, 0.16);
+  box-shadow: 0 28px 80px rgba(2, 6, 23, 0.32);
+}
+
+.admin-swal-confirm,
+.admin-swal-cancel {
+  border-radius: 0.95em;
+}
+
+.dark .admin-swal-popup {
+  background: #020817;
+  border-color: rgba(51, 65, 85, 0.85);
+  box-shadow: 0 32px 90px rgba(0, 0, 0, 0.55);
+}
+
+@media (prefers-color-scheme: light) {
+  :root {
+    color: #213547;
+    background-color: #ffffff;
+  }
+}
+
+/* Center Toastify Close Button */
+.Toastify__toast { 
+  position: relative !important;
+}
+.Toastify__toast-body {
+  padding-right: 28px !important; /* Make room for absolute close button */
+}
+.Toastify__close-button {
+  position: absolute !important;
+  top: 50% !important;
+  right: 12px !important;
+  transform: translateY(-50%) !important;
+  margin: 0 !important;
+  opacity: 0.8 !important;
+  padding: 4px !important;
+}
+.Toastify__close-button > svg {
+  height: 20px !important;
+  width: 20px !important;
+}
+.Toastify__close-button:hover {
+  opacity: 1 !important;
+}
+
+/* React Quill Custom Styles */
+.quill-custom .ql-toolbar {
+  border: none !important;
+  border-bottom: 1px solid #f1f5f9 !important;
+  padding: 12px 16px !important;
+  background-color: rgba(255, 255, 255, 0.95) !important;
+  position: sticky;
+  top: 0;
+  z-index: 10;
+  border-radius: 0;
+}
+
+/* Reset global button overrides that break Quill buttons */
+.quill-custom .ql-toolbar button {
+  padding: 3px 5px !important;
+  height: 24px !important;
+  width: 28px !important;
+  border-radius: 3px !important;
+  font-size: 14px !important;
+  background: transparent !important;
+  display: inline-block !important;
+  margin: 0 !important;
+}
+
+.quill-custom .ql-toolbar .ql-picker {
+  color: #475569 !important;
+  height: 24px !important;
+  font-size: 14px !important;
+}
+
+.quill-custom .ql-toolbar .ql-picker-label {
+  padding: 0 8px !important;
+  border: none !important;
+  
+}
+
+.quill-custom .ql-toolbar .ql-stroke {
+  fill: none !important;
+  stroke: #475569 !important;
+  stroke-width: 2 !important;
+  stroke-linecap: round !important;
+  stroke-linejoin: round !important;
+}
+.quill-custom .ql-toolbar .ql-fill,
+.quill-custom .ql-toolbar .ql-stroke.ql-fill {
+  fill: #475569 !important;
+  stroke: none !important;
+}
+
+.quill-custom .ql-toolbar button:hover .ql-stroke, 
+.quill-custom .ql-toolbar button:focus .ql-stroke, 
+.quill-custom .ql-toolbar .ql-picker-label:hover .ql-stroke, 
+.quill-custom .ql-toolbar .ql-picker-label.ql-active .ql-stroke,
+.quill-custom .ql-toolbar button.ql-active .ql-stroke {
+  stroke: #2563eb !important;
+}
+
+.quill-custom .ql-toolbar button:hover .ql-fill, 
+.quill-custom .ql-toolbar button:focus .ql-fill, 
+.quill-custom .ql-toolbar .ql-picker-label:hover .ql-fill, 
+.quill-custom .ql-toolbar .ql-picker-label.ql-active .ql-fill,
+.quill-custom .ql-toolbar button.ql-active .ql-fill {
+  fill: #2563eb !important;
+}
+
+.quill-custom .ql-toolbar button:hover, 
+.quill-custom .ql-toolbar button:focus, 
+.quill-custom .ql-toolbar .ql-picker-label:hover, 
+.quill-custom .ql-toolbar .ql-picker-label.ql-active,
+.quill-custom .ql-toolbar button.ql-active {
+  color: #2563eb !important;
+}
+
+/* Dark Mode Overrides */
+.dark .quill-custom .ql-toolbar {
+  border-bottom-color: #1e293b !important;
+  background-color: rgba(15, 23, 42, 0.95) !important;
+}
+
+.dark .quill-custom .ql-toolbar .ql-stroke {
+  stroke: #cbd5e1 !important;
+}
+
+.dark .quill-custom .ql-toolbar .ql-fill,
+.dark .quill-custom .ql-toolbar .ql-stroke.ql-fill {
+  fill: #cbd5e1 !important;
+  stroke: none !important;
+}
+
+.dark .quill-custom .ql-toolbar .ql-picker {
+  color: #cbd5e1 !important;
+}
+
+.dark .quill-custom .ql-toolbar button:hover .ql-stroke, 
+.dark .quill-custom .ql-toolbar button:focus .ql-stroke, 
+.dark .quill-custom .ql-toolbar .ql-picker-label:hover .ql-stroke, 
+.dark .quill-custom .ql-toolbar .ql-picker-label.ql-active .ql-stroke,
+.dark .quill-custom .ql-toolbar button.ql-active .ql-stroke {
+  stroke: #60a5fa !important;
+}
+
+.dark .quill-custom .ql-toolbar button:hover .ql-fill, 
+.dark .quill-custom .ql-toolbar button:focus .ql-fill, 
+.dark .quill-custom .ql-toolbar .ql-picker-label:hover .ql-fill, 
+.dark .quill-custom .ql-toolbar .ql-picker-label.ql-active .ql-fill,
+.dark .quill-custom .ql-toolbar button.ql-active .ql-fill {
+  fill: #60a5fa !important;
+}
+
+.dark .quill-custom .ql-toolbar button:hover, 
+.dark .quill-custom .ql-toolbar button:focus, 
+.dark .quill-custom .ql-toolbar .ql-picker-label:hover, 
+.dark .quill-custom .ql-toolbar .ql-picker-label.ql-active,
+.dark .quill-custom .ql-toolbar button.ql-active {
+  color: #60a5fa !important;
+}
+
+.quill-custom .ql-container {
+  border: none !important;
+  font-family: inherit;
+  font-size: 1rem;
+}
+
+.quill-custom .ql-editor {
+  min-height: 500px;
+  padding: 24px 40px;
+  color: #334155;
+  line-height: 1.75;
+}
+
+.dark .quill-custom .ql-editor {
+  color: #cbd5e1;
+}
+
+.quill-custom .ql-editor.ql-blank::before {
+  color: #94a3b8;
+  font-style: normal;
+  left: 40px;
+}
+
+.dark .quill-custom .ql-editor.ql-blank::before {
+  color: #475569;
+}
+
+
+
+
+.admin-fixed-height {
+  height: 42px !important;
+  min-height: 42px !important;
+  padding-top: 0 !important;
+  padding-bottom: 0 !important;
+}
