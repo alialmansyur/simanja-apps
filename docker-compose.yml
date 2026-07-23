@@ -9,13 +9,6 @@ services:
     restart: unless-stopped
     ports:
       - "8102:80"
-    environment:
-      DB_CONNECTION: mysql
-      DB_HOST: ${DB_HOST:-150.165.10.107}
-      DB_PORT: 3306
-      DB_DATABASE: ${DB_DATABASE:-agenda_db}
-      DB_USERNAME: ${DB_USERNAME:-1nkakanre3}
-      DB_PASSWORD: ${DB_PASSWORD:-1nk4jaya@2024!}
     volumes:
       - ./apps/agenda-backend:/var/www/html
     networks:
