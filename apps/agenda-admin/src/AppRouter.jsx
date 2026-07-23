@@ -25,7 +25,7 @@ import ErrorBoundary from './components/ErrorBoundary';
 
 const AppRouter = () => {
   return (
-    <BrowserRouter>
+    <BrowserRouter basename={import.meta.env.BASE_URL}>
       <Routes>
         {/* Public Routes */}
         <Route path="/login" element={<LoginPage />} />
