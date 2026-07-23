@@ -367,7 +367,8 @@ const NotulaDetailWorkspace = () => {
     iframe.style.position = 'absolute';
     iframe.style.width = '210mm';
     iframe.style.top = '-9999px';
-    iframe.style.visibility = 'hidden';
+    iframe.style.left = '-9999px';
+    // Remove visibility: hidden to prevent blank/black print previews in some browsers
     document.body.appendChild(iframe);
     
     const doc = iframe.contentWindow.document;
@@ -457,7 +458,7 @@ const NotulaDetailWorkspace = () => {
         <body style="word-wrap: break-word;">
           ${pdfSettings.useLetterhead ? `
           <div class="kop-surat">
-            <img src="/kop_surat.png" alt="Kop Surat" />
+            <img src="${import.meta.env.BASE_URL}kop_surat.png" alt="Kop Surat" />
           </div>
           ` : ''}
           
@@ -914,7 +915,7 @@ const NotulaDetailWorkspace = () => {
                   >
                     {pdfSettings.useLetterhead && (
                       <div className="mb-6 w-full">
-                        <img src="/kop_surat.png" alt="Kop Surat" className="w-full h-auto object-contain" />
+                        <img src={import.meta.env.BASE_URL + 'kop_surat.png'} alt="Kop Surat" className="w-full h-auto object-contain" />
                       </div>
                     )}
 
