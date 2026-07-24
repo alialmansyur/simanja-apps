@@ -17,16 +17,20 @@ class AgendaController extends Controller
     {
         $agendas = Agenda::visibleTo($request->user())
             ->select('trx_agendas.id', 'trx_agendas.title', 'trx_agendas.description', 'trx_agendas.start_date', 'trx_agendas.start_time')
+            ->where(function($query) {
+                $query->whereNull('trx_agendas.description')
+                      ->orWhere(function($q) {
+                          // Requested by user: takeout description = 'Hari Libur Nasional' or 'Cuti Bersama' etc
+                          $q->where('trx_agendas.description', '!=', 'Hari Libur Nasional')
+                            ->where('trx_agendas.description', '!=', 'Cuti Bersama')
+                            ->where('trx_agendas.description', '!=', 'Hari Libur Nasional / Cuti Bersama Tahun 2026')
+                            // Fallback using LIKE just in case
+                            ->where('trx_agendas.description', 'not like', '%Hari Libur Nasional%')
+                            ->where('trx_agendas.description', 'not like', '%Cuti Bersama%');
+                      });
+            })
             ->orderBy('trx_agendas.start_date', 'desc')
             ->get();
-            
-        $agendas = $agendas->filter(function($agenda) {
-            $desc = strtolower($agenda->description ?? '');
-            if (str_contains($desc, strtolower('Hari Libur Nasional / Cuti Bersama Tahun 2026'))) return false;
-            if (str_contains($desc, strtolower('Hari Libur Nasional'))) return false;
-            if (str_contains($desc, strtolower('Cuti Bersama'))) return false;
-            return true;
-        })->values();
             
         $agendasWithNotulas = DB::table('trx_notulas')->whereNotNull('trx_agenda_id')->pluck('trx_agenda_id')->toArray();
         
