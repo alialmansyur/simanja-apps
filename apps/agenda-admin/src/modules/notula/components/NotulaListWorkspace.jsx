@@ -111,15 +111,6 @@ const NotulaListWorkspace = () => {
             const title = (a.title || '').toLowerCase();
             const desc = (a.description || '').toLowerCase();
             
-            // If description contains holiday keywords, filter it out
-            if (desc.includes('hari libur') || desc.includes('cuti bersama')) return false;
-            
-            // Fallback: if description is missing (e.g. backend not updated), check the title just in case
-            if (!a.description && (title.includes('hari libur') || title.includes('cuti bersama'))) return false;
-            
-            // Further fallback for specific known holidays if backend fails
-            if (title.includes('isra mikraj') || title.includes('wafat yesus') || title.includes('idulfitri') || title.includes('idul adha') || title.includes('nyepi') || title.includes('waisak') || title.includes('natal') || title.includes('kenaikan yesus') || title.includes('maulid nabi') || title.includes('proklamasi') || title.includes('pancasila') || title.includes('buruh') || title.includes('imlek')) return false;
-            
             return true;
         })
         .map(a => ({ value: a.id, label: a.title })),
