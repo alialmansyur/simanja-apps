@@ -12,7 +12,8 @@ export const useNotulaList = () => {
         setError(null);
         try {
             const res = await getNotulas(params);
-            setNotulas(res.data || []);
+            const data = res.data || [];
+            setNotulas(Array.isArray(data) ? data : (data.items || []));
         } catch (err) {
             setError(err.message || 'Gagal memuat daftar notula');
             toast.error('Gagal memuat daftar notula');
@@ -41,7 +42,8 @@ export const useAgendaList = () => {
         setIsLoading(true);
         try {
             const res = await getAgendas();
-            setAgendas(res.data || []);
+            const data = res.data || [];
+            setAgendas(Array.isArray(data) ? data : (data.items || []));
         } catch (err) {
             console.error('Gagal memuat agenda', err);
         } finally {
