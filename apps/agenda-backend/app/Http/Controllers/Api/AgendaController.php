@@ -16,7 +16,7 @@ class AgendaController extends Controller
     public function index(Request $request): JsonResponse
     {
         $agendas = Agenda::visibleTo($request->user())
-            ->select('trx_agendas.id', 'trx_agendas.title', 'trx_agendas.start_date', 'trx_agendas.start_time')
+            ->select('trx_agendas.id', 'trx_agendas.title', 'trx_agendas.description', 'trx_agendas.start_date', 'trx_agendas.start_time')
             ->orderBy('trx_agendas.start_date', 'desc')
             ->get();
             
