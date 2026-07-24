@@ -16,10 +16,29 @@ class AgendaController extends Controller
     public function index(Request $request): JsonResponse
     {
         $agendas = Agenda::visibleTo($request->user())
-            ->select('trx_agendas.id', 'trx_agendas.title', 'trx_agendas.description', 'trx_agendas.start_date', 'trx_agendas.start_time')
-            ->where('trx_agendas.description', '!=', 'Hari Libur Nasional')
+            ->select('trx_agendas.id', 'trx_agendas.title', 'trx_agendas.start_date', 'trx_agendas.start_time')
             ->orderBy('trx_agendas.start_date', 'desc')
             ->get();
+            
+        // Filter out any holidays from the collection
+        $agendas = $agendas->filter(function($agenda) {
+            $t = strtolower($agenda->title);
+            if (str_contains($t, 'cuti bersama') || str_contains($t, 'hari libur')) return false;
+            if (str_contains($t, 'isra mikraj') || str_contains($t, 'wafat yesus')) return false;
+            if (str_contains($t, 'idulfitri') || str_contains($t, 'idul adha')) return false;
+            if (str_contains($t, 'nyepi') || str_contains($t, 'imlek')) return false;
+            if (str_contains($t, 'maulid nabi') || str_contains($t, 'proklamasi')) return false;
+            if (str_contains($t, 'pancasila') || str_contains($t, 'waisak')) return false;
+            if (str_contains($t, 'buruh') || str_contains($t, 'kristus')) return false;
+            if (str_contains($t, 'natal') || str_contains($t, 'tahun baru')) return false;
+            
+            // Check description as fallback if it exists
+            if (isset($agenda->description) && str_contains(strtolower($agenda->description), 'hari libur')) {
+                return false;
+            }
+            
+            return true;
+        })->values();
             
         $agendasWithNotulas = DB::table('trx_notulas')->whereNotNull('trx_agenda_id')->pluck('trx_agenda_id')->toArray();
         
