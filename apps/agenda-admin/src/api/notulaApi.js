@@ -36,10 +36,6 @@ export const removeNotulaParticipant = async (uid, participantId) => {
 };
 
 export const getAgendas = async () => {
-    const response = await axiosInstance.get('agendas'); 
-    // Wait, check if /agendas endpoint exists or maybe use /references/agendas if available.
-    // In api.php, there's no /agendas list endpoint except inside units (e.g., /units/{unit}/agendas).
-    // Let me provide a generic one or maybe the backend has it. 
-    // Actually, I'll need to check the exact endpoint for Agendas.
+    const response = await axiosInstance.get(`agendas?_t=${Date.now()}`); 
     return response.data;
 };
