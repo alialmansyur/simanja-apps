@@ -118,7 +118,7 @@ const NotulaListWorkspace = () => {
             if (!a.description && (title.includes('hari libur') || title.includes('cuti bersama'))) return false;
             
             // Further fallback for specific known holidays if backend fails
-            if (title.includes('isra mikraj') || title.includes('wafat yesus') || title.includes('idulfitri') || title.includes('idul adha') || title.includes('nyepi') || title.includes('waisak') || title.includes('natal') || title.includes('kenaikan yesus')) return false;
+            if (title.includes('isra mikraj') || title.includes('wafat yesus') || title.includes('idulfitri') || title.includes('idul adha') || title.includes('nyepi') || title.includes('waisak') || title.includes('natal') || title.includes('kenaikan yesus') || title.includes('maulid nabi') || title.includes('proklamasi') || title.includes('pancasila') || title.includes('buruh') || title.includes('imlek')) return false;
             
             return true;
         })
