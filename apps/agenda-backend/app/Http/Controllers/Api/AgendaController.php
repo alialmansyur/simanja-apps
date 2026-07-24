@@ -17,13 +17,12 @@ class AgendaController extends Controller
     {
         $agendas = Agenda::visibleTo($request->user())
             ->select('trx_agendas.id', 'trx_agendas.title', 'trx_agendas.description', 'trx_agendas.start_date', 'trx_agendas.start_time')
-            ->where('trx_agendas.title', 'not like', '%hari libur%')
-            ->where('trx_agendas.title', 'not like', '%cuti bersama%')
             ->where(function($query) {
                 $query->whereNull('trx_agendas.description')
                       ->orWhere(function($q) {
-                          $q->where('trx_agendas.description', 'not like', '%hari libur%')
-                            ->where('trx_agendas.description', 'not like', '%cuti bersama%');
+                          $q->where('trx_agendas.description', 'not like', '%Hari Libur Nasional / Cuti Bersama Tahun 2026%')
+                            ->where('trx_agendas.description', 'not like', '%Hari Libur Nasional%')
+                            ->where('trx_agendas.description', 'not like', '%Cuti Bersama%');
                       });
             })
             ->orderBy('trx_agendas.start_date', 'desc')
