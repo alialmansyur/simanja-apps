@@ -17,7 +17,7 @@ class AgendaController extends Controller
     {
         $agendas = Agenda::visibleTo($request->user())
             ->select('trx_agendas.id', 'trx_agendas.title', 'trx_agendas.description', 'trx_agendas.start_date', 'trx_agendas.start_time')
-            ->where('trx_agendas.description', '!=', 'Hari Libur Nasional')
+            ->where('trx_agendas.description', 'not like', '%Hari Libur Nasional%')
             ->orderBy('trx_agendas.start_date', 'desc')
             ->get();
             
