@@ -105,7 +105,17 @@ const NotulaListWorkspace = () => {
   };
 
   const agendaOptions = [
-      ...agendas.filter(a => !a.has_notula).map(a => ({ value: a.id, label: a.title })),
+      ...agendas
+        .filter(a => !a.has_notula)
+        .filter(a => {
+            const title = (a.title || '').toLowerCase();
+            const desc = (a.description || '').toLowerCase();
+            return !title.includes('hari libur') && 
+                   !title.includes('cuti bersama') && 
+                   !desc.includes('hari libur') && 
+                   !desc.includes('cuti bersama');
+        })
+        .map(a => ({ value: a.id, label: a.title })),
       { value: 'LAINNYA', label: 'Lainnya (Tulis Manual)...' }
   ];
 
