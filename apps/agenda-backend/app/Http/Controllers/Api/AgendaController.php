@@ -19,15 +19,7 @@ class AgendaController extends Controller
             ->select('trx_agendas.id', 'trx_agendas.title', 'trx_agendas.description', 'trx_agendas.start_date', 'trx_agendas.start_time')
             ->where(function($query) {
                 $query->whereNull('trx_agendas.description')
-                      ->orWhere(function($q) {
-                          // Requested by user: takeout description = 'Hari Libur Nasional' or 'Cuti Bersama' etc
-                          $q->where('trx_agendas.description', '!=', 'Hari Libur Nasional')
-                            ->where('trx_agendas.description', '!=', 'Cuti Bersama')
-                            ->where('trx_agendas.description', '!=', 'Hari Libur Nasional / Cuti Bersama Tahun 2026')
-                            // Fallback using LIKE just in case
-                            ->where('trx_agendas.description', 'not like', '%Hari Libur Nasional%')
-                            ->where('trx_agendas.description', 'not like', '%Cuti Bersama%');
-                      });
+                      ->orWhere('trx_agendas.description', '!=', 'Hari Libur Nasional');
             })
             ->orderBy('trx_agendas.start_date', 'desc')
             ->get();
