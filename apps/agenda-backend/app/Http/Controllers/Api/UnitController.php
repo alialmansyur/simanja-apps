@@ -80,7 +80,8 @@ class UnitController extends Controller
                 'ref_statuses.name as status_name',
                   'creator_employee.nama as creator_name',
                   'creator_employee.nip as creator_nip'
-            );
+            )
+            ->with('rooms');
 
         if ($request->has('search') && $request->search != '') {
             $search = $request->search;
@@ -207,7 +208,13 @@ class UnitController extends Controller
                 'creatorName' => $agenda->creator_name,
                 'creatorNip' => $agenda->creator_nip,
                 'refUnitId' => $agenda->ref_unit_id,
-                'participants' => $participants[$agenda->id] ?? []
+                'participants' => $participants[$agenda->id] ?? [],
+                'rooms' => $agenda->rooms->map(function($room) {
+                    return [
+                        'id' => $room->id,
+                        'name' => $room->name
+                    ];
+                }),
             ];
         });
 
@@ -237,9 +244,11 @@ class UnitController extends Controller
             'endTime' => 'required',
             'publishType' => 'nullable|string',
             
+            
             // Location
             'isOnline' => 'required|boolean',
-            'roomId' => 'nullable|integer',
+            'roomIds' => 'nullable|array',
+            'roomIds.*' => 'integer',
             'offlineLocation' => 'nullable|string|max:255',
             'onlineUrl' => 'nullable|string|max:255',
             'onlineMeetingId' => 'nullable|string|max:100',
@@ -266,6 +275,23 @@ class UnitController extends Controller
         $category = DB::table('ref_agenda_categories')->where('name', $validated['category'])->first();
         $categoryId = $category ? $category->id : null;
 
+        // Duplicate Validation Check (Unit + Kegiatan + Tanggal)
+        if ($categoryId && $validated['startDate']) {
+            $duplicateQuery = DB::table('trx_agendas')
+                ->where('ref_unit_id', $unit->id)
+                ->where('ref_agenda_category_id', $categoryId)
+                ->where('start_date', $validated['startDate'])
+                ->whereNull('deleted_at');
+                
+            $exists = $duplicateQuery->exists();
+            if ($exists) {
+                return response()->json([
+                    'message' => 'Agenda dengan Unit, Kategori Kegiatan, dan Tanggal yang sama sudah ada.',
+                    'error' => 'Duplicate Agenda'
+                ], 422);
+            }
+        }
+
         $status = DB::table('ref_statuses')->where('name', $validated['status'])->first();
         $statusId = $status ? $status->id : null;
 
@@ -286,7 +312,7 @@ class UnitController extends Controller
                 'end_time' => $validated['endTime'],
                 
                 'is_online' => $validated['isOnline'],
-                'ref_room_id' => !$validated['isOnline'] ? ($validated['roomId'] ?? null) : null,
+                'ref_room_id' => null, // Legacy, use pivot table
                 'offline_location' => !$validated['isOnline'] ? ($validated['offlineLocation'] ?? null) : null,
                 
                 'online_url' => $validated['isOnline'] ? ($validated['onlineUrl'] ?? null) : null,
@@ -327,6 +353,19 @@ class UnitController extends Controller
                     ];
                 }
                 DB::table('trx_agenda_participants')->insert($participantInserts);
+            }
+
+            if (!$validated['isOnline'] && !empty($validated['roomIds'])) {
+                $roomInserts = [];
+                foreach ($validated['roomIds'] as $roomId) {
+                    $roomInserts[] = [
+                        'trx_agenda_id' => $id,
+                        'ref_room_id' => $roomId,
+                        'created_at' => now(),
+                        'updated_at' => now(),
+                    ];
+                }
+                DB::table('trx_agenda_rooms')->insert($roomInserts);
             }
 
             DB::commit();

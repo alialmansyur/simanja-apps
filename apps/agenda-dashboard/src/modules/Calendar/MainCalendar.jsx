@@ -161,9 +161,12 @@ const MainCalendar = ({ events = [], selectedEvent, setSelectedEvent, kpiData })
   const handleSelectSlot = (slotInfo) => {
     if (slotInfo.action === 'select' || slotInfo.action === 'click') {
       setSelectedEvent(null); // Ensure event modal is closed
-      const dayEvents = filteredEvents.filter(event => 
-        moment(event.start).isSame(slotInfo.start, 'day')
-      );
+      const dayEvents = filteredEvents.filter(event => {
+        const selectedDay = moment(slotInfo.start).startOf('day');
+        const eventStart = moment(event.start).startOf('day');
+        const eventEnd = moment(event.end).startOf('day');
+        return selectedDay.isBetween(eventStart, eventEnd, 'day', '[]');
+      });
       setSelectedDayEvents({
         date: slotInfo.start,
         events: dayEvents
@@ -353,7 +356,12 @@ const MainCalendar = ({ events = [], selectedEvent, setSelectedEvent, kpiData })
   };
 
   const todayEventsCount = useMemo(() => {
-    return events.filter(ev => moment(ev.start).isSame(new Date(), 'day')).length;
+    return events.filter(ev => {
+      const today = moment(new Date()).startOf('day');
+      const eventStart = moment(ev.start).startOf('day');
+      const eventEnd = moment(ev.end).startOf('day');
+      return today.isBetween(eventStart, eventEnd, 'day', '[]');
+    }).length;
   }, [events]);
 
   const extendedKpiData = useMemo(() => ({

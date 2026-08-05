@@ -124,7 +124,8 @@ class AgendaController extends Controller
             
             // Location
             'isOnline' => 'required|boolean',
-            'roomId' => 'nullable|integer',
+            'roomIds' => 'nullable|array',
+            'roomIds.*' => 'integer',
             'offlineLocation' => 'nullable|string|max:255',
             'onlineUrl' => 'nullable|string|max:255',
             'onlineMeetingId' => 'nullable|string|max:100',
@@ -178,6 +179,24 @@ class AgendaController extends Controller
         $status = DB::table('ref_statuses')->where('name', $validated['status'])->first();
         $statusId = $status ? $status->id : null;
 
+        // Duplicate Validation Check (Unit + Kegiatan + Tanggal), exclude self
+        if ($categoryId && $validated['startDate']) {
+            $duplicateQuery = DB::table('trx_agendas')
+                ->where('id', '!=', $agenda->id)
+                ->where('ref_unit_id', $agenda->ref_unit_id)
+                ->where('ref_agenda_category_id', $categoryId)
+                ->where('start_date', $validated['startDate'])
+                ->whereNull('deleted_at');
+                
+            $exists = $duplicateQuery->exists();
+            if ($exists) {
+                return response()->json([
+                    'message' => 'Agenda dengan Unit, Kategori Kegiatan, dan Tanggal yang sama sudah ada.',
+                    'error' => 'Duplicate Agenda'
+                ], 422);
+            }
+        }
+
         DB::beginTransaction();
         try {
             DB::table('trx_agendas')->where('id', $agenda->id)->update([
@@ -192,7 +211,7 @@ class AgendaController extends Controller
                 'end_time' => $validated['endTime'],
                 
                 'is_online' => $validated['isOnline'],
-                'ref_room_id' => !$validated['isOnline'] ? ($validated['roomId'] ?? null) : null,
+                'ref_room_id' => null, // Legacy, use pivot table
                 'offline_location' => !$validated['isOnline'] ? ($validated['offlineLocation'] ?? null) : null,
                 
                 'online_url' => $validated['isOnline'] ? ($validated['onlineUrl'] ?? null) : null,
@@ -233,6 +252,20 @@ class AgendaController extends Controller
                 }, $validated['participants']);
                 
                 DB::table('trx_agenda_participants')->insert($participantsData);
+            }
+
+            // Sync rooms
+            DB::table('trx_agenda_rooms')->where('trx_agenda_id', $agenda->id)->delete();
+            if (!$validated['isOnline'] && !empty($validated['roomIds'])) {
+                $roomInserts = array_map(function($roomId) use ($agenda) {
+                    return [
+                        'trx_agenda_id' => $agenda->id,
+                        'ref_room_id' => $roomId,
+                        'created_at' => now(),
+                        'updated_at' => now(),
+                    ];
+                }, $validated['roomIds']);
+                DB::table('trx_agenda_rooms')->insert($roomInserts);
             }
 
             DB::commit();
@@ -294,10 +327,10 @@ class AgendaController extends Controller
     private function buildHistoryQuery(Request $request)
     {
         $query = Agenda::visibleTo($request->user())
+            ->with('rooms')
             ->leftJoin('ref_agenda_categories', 'trx_agendas.ref_agenda_category_id', '=', 'ref_agenda_categories.id')
             ->leftJoin('ref_event_types', 'trx_agendas.ref_event_type_id', '=', 'ref_event_types.id')
             ->leftJoin('ref_pegawai', 'trx_agendas.pic_employee_id', '=', 'ref_pegawai.id')
-            ->leftJoin('ref_rooms', 'trx_agendas.ref_room_id', '=', 'ref_rooms.id')
             ->leftJoin('ref_statuses', 'trx_agendas.ref_status_id', '=', 'ref_statuses.id')
             ->whereNull('trx_agendas.deleted_at')
             ->select(
@@ -321,8 +354,6 @@ class AgendaController extends Controller
                 'ref_agenda_categories.name as category_name',
                 'ref_event_types.name as event_type_name',
                 'ref_pegawai.nama as pic_name',
-                'ref_rooms.name as room_name',
-                'ref_rooms.id as room_id',
                 'ref_statuses.name as status_name'
             );
 
@@ -343,8 +374,10 @@ class AgendaController extends Controller
         if ($request->has('room') && $request->room != 'Semua') {
             $room = $request->room;
             $query->where(function ($q) use ($room) {
-                $q->where('ref_rooms.name', 'like', "%{$room}%")
-                  ->orWhere('trx_agendas.offline_location', 'like', "%{$room}%");
+                $q->whereHas('rooms', function($qr) use ($room) {
+                    $qr->where('ref_rooms.name', 'like', "%{$room}%");
+                })
+                ->orWhere('trx_agendas.offline_location', 'like', "%{$room}%");
             });
         }
 
@@ -382,8 +415,9 @@ class AgendaController extends Controller
         if ($agenda->is_online) {
             $locationDisplay = 'Online (Zoom/Meet)';
         } else {
-            if ($agenda->room_name) {
-                $locationDisplay = $agenda->room_name;
+            $roomNames = $agenda->rooms ? $agenda->rooms->pluck('name')->toArray() : [];
+            if (!empty($roomNames)) {
+                $locationDisplay = implode(', ', $roomNames);
             } elseif ($agenda->offline_location) {
                 $locationDisplay = $agenda->offline_location;
             }
@@ -416,7 +450,8 @@ class AgendaController extends Controller
             'ndNumber' => $agenda->nd_number,
             'isAllEmployees' => (bool) $agenda->is_all_employees,
             'team' => 'Pusat', // Adjust as needed
-            'roomId' => $agenda->room_id,
+            'roomId' => null, // legacy
+            'roomIds' => $agenda->rooms ? $agenda->rooms->pluck('id')->toArray() : [],
             'categoryId' => $agenda->ref_agenda_category_id,
         ];
     }

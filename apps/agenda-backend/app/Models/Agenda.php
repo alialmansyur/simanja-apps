@@ -80,6 +80,11 @@ class Agenda extends Model
         return $this->hasMany(AgendaParticipant::class, 'trx_agenda_id');
     }
 
+    public function rooms()
+    {
+        return $this->belongsToMany(Room::class, 'trx_agenda_rooms', 'trx_agenda_id', 'ref_room_id');
+    }
+
     public function scopeVisibleTo($query, $user)
     {
         if (!$user) {

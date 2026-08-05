@@ -79,7 +79,7 @@ const createInitialForm = () => ({
   startTime: new Date(),
   endTime: new Date(),
   isOnline: false,
-  roomId: '',
+  roomIds: [],
   offlineLocation: '', 
   onlineUrl: '',
   onlineMeetingId: '',
@@ -391,7 +391,7 @@ const AgendaManagementWorkspace = () => {
       startTime: activity.startTime ? new Date(`1970-01-01T${activity.startTime}`) : new Date(),
       endTime: activity.endTime ? new Date(`1970-01-01T${activity.endTime}`) : new Date(),
       isOnline: activity.isOnline || false,
-      roomId: activity.roomId ? activity.roomId.toString() : (activity.offlineLocation ? 'lainnya' : ''),
+      roomIds: activity.rooms ? activity.rooms.map(r => r.id.toString()) : [],
       offlineLocation: activity.offlineLocation || '',
       onlineUrl: activity.onlineUrl || '',
       onlineMeetingId: activity.onlineMeetingId || '',
@@ -427,8 +427,8 @@ const AgendaManagementWorkspace = () => {
         startTime: agendaForm.startTime ? moment(agendaForm.startTime).format('HH:mm:ss') : null,
         endTime: agendaForm.endTime ? moment(agendaForm.endTime).format('HH:mm:ss') : null,
         isOnline: agendaForm.isOnline,
-        roomId: (agendaForm.isOnline || !agendaForm.roomId || agendaForm.roomId === 'lainnya') ? null : parseInt(agendaForm.roomId, 10),
-        offlineLocation: agendaForm.roomId === 'lainnya' ? agendaForm.offlineLocation.trim() : null,
+        roomIds: (agendaForm.isOnline || agendaForm.roomIds.includes('lainnya')) ? agendaForm.roomIds.filter(id => id !== 'lainnya').map(id => parseInt(id, 10)) : agendaForm.roomIds.map(id => parseInt(id, 10)),
+        offlineLocation: agendaForm.roomIds.includes('lainnya') ? agendaForm.offlineLocation.trim() : null,
         onlineUrl: agendaForm.onlineUrl.trim(),
         onlineMeetingId: agendaForm.onlineMeetingId.trim(),
         onlinePassword: agendaForm.onlinePassword.trim(),
@@ -459,10 +459,11 @@ const AgendaManagementWorkspace = () => {
       loadActivities(true);
     } catch (error) {
       console.error('Failed to create agenda', error);
-      if (error.response && error.response.data && error.response.data.error) {
+      if (error.response && error.response.data && error.response.data.message) {
+        toast?.error(error.response.data.message);
+      } else if (error.response && error.response.data && error.response.data.error) {
         toast?.error('Database Error: ' + error.response.data.error);
       } else if (error.response && error.response.status === 422) {
-        // Validation errors are usually handled by axios interceptor, but just in case
         toast?.error('Gagal memvalidasi data form.');
       } else {
         toast?.error('Gagal menjadwalkan agenda. Pastikan semua form terisi dengan benar.');
@@ -1622,6 +1623,7 @@ const AgendaManagementWorkspace = () => {
                           </span>
                           <div className="admin-filter-select">
                             <Select
+                              isMulti
                               options={[
                                 ...(availableRooms.length > 0 ? availableRooms : rooms).map(room => {
                                   const isUnavailable = !room.is_available && room.is_available !== undefined;
@@ -1642,8 +1644,8 @@ const AgendaManagementWorkspace = () => {
                                   conflict: room.conflict_description
                                 })),
                                 { value: 'lainnya', label: 'Lainnya...' }
-                              ].find(opt => opt.value === agendaForm.roomId) || null}
-                              onChange={(selectedOption) => handleFormChange('roomId', selectedOption ? selectedOption.value : '')}
+                              ].filter(opt => agendaForm.roomIds.includes(opt.value))}
+                              onChange={(selectedOptions) => handleFormChange('roomIds', selectedOptions ? selectedOptions.map(opt => opt.value) : [])}
                               isOptionDisabled={(option) => option.isDisabled}
                               formatOptionLabel={(option) => (
                                 <div className={cn(option.isDisabled ? 'text-red-500' : '')}>
@@ -1658,7 +1660,7 @@ const AgendaManagementWorkspace = () => {
                             />
                           </div>
                         </label>
-                        {agendaForm.roomId === 'lainnya' && (
+                        {agendaForm.roomIds.includes('lainnya') && (
                           <label className="block animate-in fade-in slide-in-from-top-2">
                             <span className="mb-2 block text-xs font-semibold text-slate-500 dark:text-slate-400">
                               Detail Tempat Lainnya

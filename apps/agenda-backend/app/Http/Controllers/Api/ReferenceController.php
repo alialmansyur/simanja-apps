@@ -152,12 +152,6 @@ class ReferenceController extends Controller
 
     public function getRoomAvailability(\Illuminate\Http\Request $request): JsonResponse
     {
-        $startDate = $request->query('start_date');
-        $endDate = $request->query('end_date');
-        $startTime = $request->query('start_time');
-        $endTime = $request->query('end_time');
-        $excludeAgendaId = $request->query('exclude_agenda_id');
-
         $rooms = DB::table('ref_rooms')
             ->where('is_active', true)
             ->whereNull('deleted_at')
@@ -165,42 +159,9 @@ class ReferenceController extends Controller
             ->orderBy('name')
             ->get();
 
-        if (!$startDate || !$endDate || !$startTime || !$endTime) {
-            foreach ($rooms as $room) {
-                $room->is_available = true;
-                $room->conflict_description = null;
-            }
-            return response()->json(['message' => 'Success', 'data' => $rooms]);
-        }
-
-        $conflictQuery = DB::table('trx_agendas')
-            ->leftJoin('ref_statuses', 'trx_agendas.ref_status_id', '=', 'ref_statuses.id')
-            ->whereNull('trx_agendas.deleted_at')
-            ->whereNotIn('ref_statuses.name', ['Batal', 'Selesai'])
-            ->whereRaw("CONCAT(trx_agendas.end_date, ' ', trx_agendas.end_time) >= ?", [now()->format('Y-m-d H:i:s')])
-            ->where('trx_agendas.start_date', '<=', $endDate)
-            ->where('trx_agendas.end_date', '>=', $startDate)
-            ->where('trx_agendas.start_time', '<=', $endTime)
-            ->where('trx_agendas.end_time', '>=', $startTime)
-            ->select('trx_agendas.*');
-
-        if ($excludeAgendaId) {
-            $conflictQuery->where('trx_agendas.id', '!=', $excludeAgendaId);
-        }
-
-        $conflictingAgendas = $conflictQuery->whereNotNull('trx_agendas.ref_room_id')->get();
-        $agendaMap = $conflictingAgendas->keyBy('ref_room_id');
-
         foreach ($rooms as $room) {
-            $conflict = $agendaMap[$room->id] ?? null;
-
-            if ($conflict) {
-                $room->is_available = false;
-                $room->conflict_description = 'Bentrok: ' . $conflict->title;
-            } else {
-                $room->is_available = true;
-                $room->conflict_description = null;
-            }
+            $room->is_available = true;
+            $room->conflict_description = null;
         }
 
         return response()->json(['message' => 'Success', 'data' => $rooms]);
