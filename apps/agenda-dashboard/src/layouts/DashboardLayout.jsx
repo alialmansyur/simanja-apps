@@ -143,7 +143,7 @@ const DashboardLayout = () => {
                 
                 {/* Footer space */}
                 <div className="h-12 mt-8 flex items-center justify-center text-sm text-slate-400">
-                  &copy; {new Date().getFullYear()} {settings?.['app.name'] || 'AgendaKu System'}. All rights reserved.
+                  &copy; {new Date().getFullYear()} {settings?.['app.name'] || 'Simanja'}. All rights reserved.
                 </div>
               </div>
             </main>
