@@ -47,7 +47,6 @@ class UnitController extends Controller
             ->leftJoin('ref_agenda_categories', 'trx_agendas.ref_agenda_category_id', '=', 'ref_agenda_categories.id')
             ->leftJoin('ref_event_types', 'trx_agendas.ref_event_type_id', '=', 'ref_event_types.id')
             ->leftJoin('ref_pegawai', 'trx_agendas.pic_employee_id', '=', 'ref_pegawai.id')
-            ->leftJoin('ref_rooms', 'trx_agendas.ref_room_id', '=', 'ref_rooms.id')
             ->leftJoin('ref_statuses', 'trx_agendas.ref_status_id', '=', 'ref_statuses.id')
               ->leftJoin('auth_users', 'trx_agendas.created_by', '=', 'auth_users.id')
               ->leftJoin('ref_pegawai as creator_employee', 'auth_users.ref_employee_id', '=', 'creator_employee.id')
@@ -75,8 +74,6 @@ class UnitController extends Controller
                 'ref_agenda_categories.name as category_name',
                 'ref_event_types.name as event_type_name',
                 'ref_pegawai.nama as pic_name',
-                'ref_rooms.name as room_name',
-                'ref_rooms.id as room_id',
                 'ref_statuses.name as status_name',
                   'creator_employee.nama as creator_name',
                   'creator_employee.nip as creator_nip'
@@ -168,8 +165,9 @@ class UnitController extends Controller
             if ($agenda->is_online) {
                 $locationDisplay = 'Online (Zoom/Meet)';
             } else {
-                if ($agenda->room_name) {
-                    $locationDisplay = $agenda->room_name;
+                $roomNames = $agenda->rooms ? $agenda->rooms->pluck('name')->toArray() : [];
+                if (!empty($roomNames)) {
+                    $locationDisplay = implode(', ', $roomNames);
                 } elseif ($agenda->offline_location) {
                     $locationDisplay = $agenda->offline_location;
                 }
@@ -190,7 +188,7 @@ class UnitController extends Controller
                 'onlineUrl' => $agenda->online_url,
                 'onlineMeetingId' => $agenda->online_meeting_id,
                 'onlinePassword' => $agenda->online_password,
-                'roomId' => $agenda->room_id,
+                'roomId' => null, // legacy
                 'isAllEmployees' => (bool) $agenda->is_all_employees,
                 'publishType' => $agenda->publish_type,
                 'date' => $dateRange,

@@ -30,6 +30,6 @@ class Room extends Model
 
     public function agendas()
     {
-        return $this->hasMany(Agenda::class, 'ref_room_id');
+        return $this->belongsToMany(Agenda::class, 'trx_agenda_rooms', 'ref_room_id', 'trx_agenda_id');
     }
 }

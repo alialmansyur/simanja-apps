@@ -98,7 +98,7 @@ class PublicDashboardController extends Controller
     {
         $agendasQuery = Agenda::select('trx_agendas.*', 'ref_statuses.name as status_name')
             ->leftJoin('ref_statuses', 'trx_agendas.ref_status_id', '=', 'ref_statuses.id')
-            ->with(['room', 'pic', 'participants.employee', 'participants.officerPosition', 'category', 'unit'])
+            ->with(['rooms', 'pic', 'participants.employee', 'participants.officerPosition', 'category', 'unit'])
             ->whereNull('trx_agendas.deleted_at')
             ->where('trx_agendas.publish_type', 'public')
             ->whereIn('trx_agendas.ref_status_id', function ($query) {
@@ -122,8 +122,9 @@ class PublicDashboardController extends Controller
             if ($agenda->is_online) {
                 $locationDisplay = 'Online (Zoom/Meet)';
             } else {
-                if ($agenda->room) {
-                    $locationDisplay = $agenda->room->name;
+                $roomNames = $agenda->rooms ? $agenda->rooms->pluck('name')->toArray() : [];
+                if (!empty($roomNames)) {
+                    $locationDisplay = implode(', ', $roomNames);
                 } elseif ($agenda->offline_location) {
                     $locationDisplay = $agenda->offline_location;
                 }

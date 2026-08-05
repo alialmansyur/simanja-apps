@@ -93,7 +93,7 @@ class DashboardController extends Controller
         $user = $request->user();
         $agendasQuery = Agenda::select('trx_agendas.*', 'ref_statuses.name as status_name')
             ->leftJoin('ref_statuses', 'trx_agendas.ref_status_id', '=', 'ref_statuses.id')
-            ->with(['room', 'pic', 'participants.employee', 'participants.officerPosition', 'category', 'unit'])
+            ->with(['rooms', 'pic', 'participants.employee', 'participants.officerPosition', 'category', 'unit'])
             ->whereNull('trx_agendas.deleted_at')
             ->where('trx_agendas.start_date', '>=', Carbon::now()->subMonths(3)->toDateString())
             ->where('trx_agendas.start_date', '<=', Carbon::now()->addMonths(3)->toDateString());
@@ -115,8 +115,9 @@ class DashboardController extends Controller
             if ($agenda->is_online) {
                 $locationDisplay = 'Online (Zoom/Meet)';
             } else {
-                if ($agenda->room) {
-                    $locationDisplay = $agenda->room->name;
+                $roomNames = $agenda->rooms ? $agenda->rooms->pluck('name')->toArray() : [];
+                if (!empty($roomNames)) {
+                    $locationDisplay = implode(', ', $roomNames);
                 } elseif ($agenda->offline_location) {
                     $locationDisplay = $agenda->offline_location;
                 }
