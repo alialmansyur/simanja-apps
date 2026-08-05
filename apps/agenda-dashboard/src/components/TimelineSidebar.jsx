@@ -56,7 +56,7 @@ const TimelineSidebar = ({ events = [], onEventClick }) => {
   const currentEvent = todayEvents.find(ev => now >= ev.start && now <= ev.end);
 
   return (
-    <div className="w-full xl:w-80 2xl:w-96 bg-slate-50 dark:bg-slate-900/50 border-t xl:border-t-0 xl:border-r border-slate-200 dark:border-slate-800 flex flex-col overflow-hidden shrink-0">
+    <div className="w-full xl:w-80 2xl:w-96 bg-slate-50 dark:bg-slate-900/50 border-t xl:border-t-0 xl:border-r border-slate-200 dark:border-slate-800 flex flex-col overflow-hidden shrink-0 max-h-[60vh] xl:max-h-none">
       <div className="px-6 py-5 border-b border-slate-200 dark:border-slate-800 bg-white/50 dark:bg-slate-900/80 sticky top-0 z-10 backdrop-blur-md">
         <h2 className="text-xl font-bold text-slate-800 dark:text-slate-100">Agenda Hari Ini</h2>
         <p className="text-sm text-slate-500 dark:text-slate-400 mt-1">Anda memiliki {todayEvents.length} agenda dijadwalkan</p>

@@ -134,7 +134,7 @@ const DashboardLayout = () => {
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.5, ease: "easeOut" }}
-            className="flex flex-col xl:flex-row flex-1 overflow-hidden w-full"
+            className="flex flex-col xl:flex-row flex-1 overflow-y-auto xl:overflow-hidden w-full"
           >
             <TimelineSidebar events={events} onEventClick={setSelectedEvent} />
             <main className="flex-1 overflow-y-auto px-4 md:px-6 py-4 md:py-5 scrollbar-hide w-full xl:w-auto">
