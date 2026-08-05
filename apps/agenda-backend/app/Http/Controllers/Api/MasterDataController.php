@@ -57,7 +57,7 @@ class MasterDataController extends Controller
         }
     }
 
-    public function destroy(string $category, string $id): JsonResponse
+    public function destroy(Request $request, string $category, string $id): JsonResponse
     {
         if (!$request->user()->hasRole(['Super Admin', 'Admin'])) {
             return $this->errorResponse('Unauthorized', null, 403);

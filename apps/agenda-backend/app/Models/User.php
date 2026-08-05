@@ -22,7 +22,6 @@ class User extends Authenticatable
      * @var array<int, string>
      */
     protected $fillable = [
-        'role_id',
         'ref_employee_id',
         'ref_unit_id',
         'name',
@@ -32,9 +31,6 @@ class User extends Authenticatable
         'address',
         'avatar',
         'is_active',
-        'two_factor_secret',
-        'two_factor_recovery_codes',
-        'two_factor_confirmed_at',
     ];
 
     /**

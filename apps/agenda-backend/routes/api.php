@@ -72,9 +72,9 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::get('/history/agendas/export', [AgendaController::class, 'exportHistory']);
     Route::patch('/agendas/{uuid}/status', [AgendaController::class, 'updateStatus']);
     Route::put('/agendas/{uuid}/status', [AgendaController::class, 'updateStatus']);
-    Route::get('/test-ping', function() { return response()->json(['message' => 'pong']); });
+
     Route::post('/notulas/{uid}/participants', [\App\Http\Controllers\Api\NotulaController::class, 'addParticipant']);
-    Route::get('/get-token', function() { return response()->json(['token' => \App\Models\User::first()->createToken('test')->plainTextToken]); });
+
     Route::put('/agendas/{uuid}', [AgendaController::class, 'update']);
     Route::delete('/agendas/{uuid}', [AgendaController::class, 'destroy']);
 
