@@ -37,17 +37,17 @@ const DashboardLayout = () => {
         if (settingsRes.data['app.title'] || settingsRes.data['app.name']) {
           document.title = settingsRes.data['app.title'] || settingsRes.data['app.name'];
         }
-        if (settingsRes.data['app.favicon']) {
-          let favicon = document.querySelector("link[rel~='icon']");
-          if (!favicon) {
-            favicon = document.createElement('link');
-            favicon.rel = 'icon';
-            document.getElementsByTagName('head')[0].appendChild(favicon);
-          }
-          favicon.href = settingsRes.data['app.favicon'].startsWith('http') 
-            ? settingsRes.data['app.favicon'] 
-            : `${API_BASE_URL.replace('/api', '')}/storage/${settingsRes.data['app.favicon']}`;
-        }
+        // if (settingsRes.data['app.favicon']) {
+        //   let favicon = document.querySelector("link[rel~='icon']");
+        //   if (!favicon) {
+        //     favicon = document.createElement('link');
+        //     favicon.rel = 'icon';
+        //     document.getElementsByTagName('head')[0].appendChild(favicon);
+        //   }
+        //   favicon.href = settingsRes.data['app.favicon'].startsWith('http') 
+        //     ? settingsRes.data['app.favicon'] 
+        //     : `${API_BASE_URL.replace('/api', '')}/storage/${settingsRes.data['app.favicon']}`;
+        // }
       }
       
       if (kpiRes?.data) setKpiData(kpiRes.data);

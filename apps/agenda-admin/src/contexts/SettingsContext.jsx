@@ -27,15 +27,15 @@ export const SettingsProvider = ({ children }) => {
                     document.title = data['app.name'] || data['app.short_name'];
                 }
                 
-                if (data['app.favicon']) {
-                    let link = document.querySelector("link[rel~='icon']");
-                    if (!link) {
-                        link = document.createElement('link');
-                        link.rel = 'icon';
-                        document.head.appendChild(link);
-                    }
-                    link.href = `http://localhost:8000/storage/${data['app.favicon']}`;
-                }
+                // if (data['app.favicon']) {
+                //     let link = document.querySelector("link[rel~='icon']");
+                //     if (!link) {
+                //         link = document.createElement('link');
+                //         link.rel = 'icon';
+                //         document.head.appendChild(link);
+                //     }
+                //     link.href = `http://localhost:8000/storage/${data['app.favicon']}`;
+                // }
             }
         } catch (error) {
             console.error('Failed to load public settings:', error);
