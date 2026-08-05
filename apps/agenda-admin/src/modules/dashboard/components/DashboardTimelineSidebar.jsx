@@ -44,7 +44,12 @@ const TimelineItem = ({ event, isPast, isCurrent, onClick }) => {
 const DashboardTimelineSidebar = ({ events, onEventClick }) => {
   const now = new Date();
   const todayEvents = events
-    .filter((event) => moment(event.start).isSame(now, 'day'))
+    .filter((event) => {
+      const today = moment(now).startOf('day');
+      const eventStart = moment(event.start).startOf('day');
+      const eventEnd = moment(event.end).startOf('day');
+      return today.isBetween(eventStart, eventEnd, 'day', '[]');
+    })
     .sort((left, right) => left.start - right.start);
   const currentEvent = todayEvents.find((event) => now >= event.start && now <= event.end);
 

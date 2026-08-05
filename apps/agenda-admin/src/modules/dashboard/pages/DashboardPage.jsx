@@ -6,7 +6,7 @@ import DashboardPageSkeleton from '../components/DashboardPageSkeleton';
 import DashboardTimelineSidebar from '../components/DashboardTimelineSidebar';
 import { useDashboard } from '../hooks/useDashboard';
 import { useSettings } from '../../../contexts/SettingsContext';
-import { format, isToday } from 'date-fns';
+import { format, isToday, isWithinInterval, startOfDay } from 'date-fns';
 import { id } from 'date-fns/locale';
 import MfaActivationBanner from '../components/MfaActivationBanner';
 
@@ -24,7 +24,12 @@ const DashboardPage = () => {
 
     // Add today's active agendas
     if (eventsData && eventsData.length > 0) {
-        const todaysAgendas = eventsData.filter(event => isToday(new Date(event.start)));
+        const today = startOfDay(new Date());
+        const todaysAgendas = eventsData.filter(event => {
+            const start = startOfDay(new Date(event.start));
+            const end = startOfDay(new Date(event.end));
+            return isWithinInterval(today, { start, end });
+        });
         if (todaysAgendas.length > 0) {
             messages.push(`Agenda Hari Ini: ${todaysAgendas.map(a => `${a.title} (${format(new Date(a.start), 'HH:mm', {locale: id})})`).join(', ')}`);
         } else {

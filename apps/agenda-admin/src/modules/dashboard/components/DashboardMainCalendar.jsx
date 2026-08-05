@@ -98,7 +98,12 @@ const DashboardMainCalendar = ({ events, selectedEvent, setSelectedEvent }) => {
     setSelectedEvent(null);
     setSelectedDayEvents({
       date: slotInfo.start,
-      events: filteredEvents.filter((event) => moment(event.start).isSame(slotInfo.start, 'day')),
+      events: filteredEvents.filter((event) => {
+        const selectedDay = moment(slotInfo.start).startOf('day');
+        const eventStart = moment(event.start).startOf('day');
+        const eventEnd = moment(event.end).startOf('day');
+        return selectedDay.isBetween(eventStart, eventEnd, 'day', '[]');
+      }),
     });
   };
 
