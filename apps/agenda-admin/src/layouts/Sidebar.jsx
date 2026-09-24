@@ -53,7 +53,7 @@ const Sidebar = ({
           <div className={cn('flex w-full items-center', isCollapsed ? 'justify-center' : 'gap-3 min-w-0')}>
             <motion.img
               whileHover={{ scale: 1.04 }}
-              src="/favicon.png"
+              src={`${import.meta.env.BASE_URL}favicon.png`}
               alt="Logo"
               className="flex h-9 w-9 shrink-0 items-center justify-center rounded-[1.25em] object-contain bg-white shadow-xs"
             />

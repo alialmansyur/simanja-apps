@@ -53,7 +53,7 @@ const Header = ({ onRefresh, isRefreshing, settings, lastUpdated }) => {
       <div className="flex items-center space-x-4">
         <motion.img
           whileHover={{ scale: 1.04 }}
-          src="/favicon.png"
+          src={`${import.meta.env.BASE_URL}favicon.png`}
           alt="Logo"
           className="flex h-9 w-9 shrink-0 items-center justify-center rounded-[1.25em] object-contain bg-white shadow-xs"
         />
