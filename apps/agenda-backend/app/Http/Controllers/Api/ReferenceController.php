@@ -172,4 +172,15 @@ class ReferenceController extends Controller
         $categories = \App\Models\AgendaCategory::where('is_active', true)->select('id', 'name')->orderBy('name')->get();
         return response()->json(['message' => 'Success', 'data' => $categories]);
     }
+
+    public function getInstansi(): JsonResponse
+    {
+        $instansi = DB::table('ref_instansi')
+            ->where('is_status', 1)
+            ->select('id', 'kodeins', 'nama', 'kanreg', 'wilker')
+            ->orderBy('nama', 'asc')
+            ->get();
+
+        return response()->json(['message' => 'Success', 'data' => $instansi]);
+    }
 }

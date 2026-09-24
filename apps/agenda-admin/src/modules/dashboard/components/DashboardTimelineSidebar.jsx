@@ -1,10 +1,51 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import moment from 'moment';
 import { Clock, MapPin } from 'lucide-react';
 import EmptyState from '../../../components/ui/EmptyState';
 
+const isEventOngoingNow = (event, now) => {
+  if (!event) return false;
+  
+  // 1. Date Range Check
+  const todayStr = moment(now).format('YYYY-MM-DD');
+  const startDateStr = event.start_date_raw || moment(event.start).format('YYYY-MM-DD');
+  const endDateStr = event.end_date_raw || moment(event.end || event.start).format('YYYY-MM-DD');
+
+  if (todayStr < startDateStr || todayStr > endDateStr) {
+    return false;
+  }
+
+  // 2. Daily Operational Hours Check
+  const currentTimeStr = moment(now).format('HH:mm:ss');
+  const startTimeStr = event.start_time_raw || (event.start ? moment(event.start).format('HH:mm:ss') : null);
+  const endTimeStr = event.end_time_raw || (event.end ? moment(event.end).format('HH:mm:ss') : null);
+
+  if (!startTimeStr || !endTimeStr || (startTimeStr === '00:00:00' && endTimeStr === '23:59:59')) {
+    return true;
+  }
+
+  return currentTimeStr >= startTimeStr && currentTimeStr <= endTimeStr;
+};
+
+const isEventPastToday = (event, now) => {
+  if (!event) return false;
+  const todayStr = moment(now).format('YYYY-MM-DD');
+  const endDateStr = event.end_date_raw || moment(event.end || event.start).format('YYYY-MM-DD');
+  
+  if (todayStr > endDateStr) return true;
+  
+  const currentTimeStr = moment(now).format('HH:mm:ss');
+  const endTimeStr = event.end_time_raw || (event.end ? moment(event.end).format('HH:mm:ss') : null);
+  
+  if (!endTimeStr || endTimeStr === '23:59:59') return false;
+  
+  return currentTimeStr > endTimeStr;
+};
+
 const TimelineItem = ({ event, isPast, isCurrent, onClick }) => {
-  const timeLabel = `${moment(event.start).format('HH:mm')} - ${moment(event.end).format('HH:mm')}`;
+  const startTimeStr = event.start_time_raw ? event.start_time_raw.substring(0, 5) : moment(event.start).format('HH:mm');
+  const endTimeStr = event.end_time_raw ? event.end_time_raw.substring(0, 5) : moment(event.end).format('HH:mm');
+  const timeLabel = `${startTimeStr} - ${endTimeStr}`;
 
   return (
     <div className="grid grid-cols-[1.1rem_minmax(0,1fr)] items-start gap-4">
@@ -29,7 +70,7 @@ const TimelineItem = ({ event, isPast, isCurrent, onClick }) => {
           <Clock size={12} />
           <span>{timeLabel}</span>
         </div>
-        <h4 className={`mt-2 text-base font-bold leading-tight ${isPast ? 'text-slate-400 dark:text-slate-400' : 'text-slate-900 dark:text-white'}`}>
+        <h4 className={`mt-2 text-base font-bold leading-tight ${isPast ? 'text-slate-400 dark:text-slate-400 line-through' : 'text-slate-900 dark:text-white'}`}>
           {event.title}
         </h4>
         <div className="mt-2 flex items-start gap-2 text-sm text-slate-500 dark:text-slate-400">
@@ -41,17 +82,32 @@ const TimelineItem = ({ event, isPast, isCurrent, onClick }) => {
   );
 };
 
-const DashboardTimelineSidebar = ({ events, onEventClick }) => {
-  const now = new Date();
+const DashboardTimelineSidebar = ({ events = [], onEventClick }) => {
+  const [now, setNow] = useState(new Date());
+
+  useEffect(() => {
+    const timer = setInterval(() => {
+      setNow(new Date());
+    }, 30000); // 30 seconds update
+
+    return () => clearInterval(timer);
+  }, []);
+
+  const today = moment(now).startOf('day');
   const todayEvents = events
     .filter((event) => {
-      const today = moment(now).startOf('day');
-      const eventStart = moment(event.start).startOf('day');
-      const eventEnd = moment(event.end).startOf('day');
+      if (!event.start) return false;
+      const eventStart = moment(event.start_date_raw || event.start).startOf('day');
+      const eventEnd = moment(event.end_date_raw || event.end || event.start).startOf('day');
       return today.isBetween(eventStart, eventEnd, 'day', '[]');
     })
-    .sort((left, right) => left.start - right.start);
-  const currentEvent = todayEvents.find((event) => now >= event.start && now <= event.end);
+    .sort((left, right) => {
+      const aTime = left.start_time_raw || moment(left.start).format('HH:mm:ss');
+      const bTime = right.start_time_raw || moment(right.start).format('HH:mm:ss');
+      return aTime.localeCompare(bTime);
+    });
+
+  const currentEvent = todayEvents.find((event) => isEventOngoingNow(event, now));
 
   return (
     <aside className="flex w-full shrink-0 flex-col border-t border-slate-200 bg-white lg:col-start-2 lg:row-start-1 lg:border-l lg:border-t-0 dark:border-slate-800 dark:bg-slate-950">
@@ -81,9 +137,10 @@ const DashboardTimelineSidebar = ({ events, onEventClick }) => {
                 </span>
               </div>
               <p className="mt-3 text-[1.55rem] font-black tracking-tight">
-                {moment(currentEvent.start).format('HH:mm')}
+                {currentEvent.start_time_raw ? currentEvent.start_time_raw.substring(0, 5) : moment(currentEvent.start).format('HH:mm')}
                 <span className="mx-2 text-blue-200">-</span>
-                {moment(currentEvent.end).format('HH:mm')}
+                {currentEvent.end_time_raw ? currentEvent.end_time_raw.substring(0, 5) : moment(currentEvent.end).format('HH:mm')}
+                <span className="text-sm font-semibold text-blue-200 ml-1.5">WIB</span>
               </p>
               <h4 className="mt-2.5 text-lg font-bold leading-tight">{currentEvent.title}</h4>
               <div className="mt-2.5 flex items-center gap-2 text-sm text-blue-100">
@@ -99,8 +156,8 @@ const DashboardTimelineSidebar = ({ events, onEventClick }) => {
             <TimelineItem
               key={event.id}
               event={event}
-              isPast={now > event.end}
-              isCurrent={now >= event.start && now <= event.end}
+              isPast={isEventPastToday(event, now)}
+              isCurrent={isEventOngoingNow(event, now)}
               onClick={() => onEventClick(event)}
             />
           ))}

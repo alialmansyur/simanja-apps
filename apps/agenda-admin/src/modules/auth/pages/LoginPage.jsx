@@ -21,7 +21,7 @@ const LoginPage = () => {
 
   useEffect(() => {
     const savedTheme = localStorage.getItem('theme');
-    if (savedTheme === 'dark' || (!savedTheme && (document.documentElement.classList.contains('dark') || window.matchMedia('(prefers-color-scheme: dark)').matches))) {
+    if (savedTheme === 'dark') {
       setIsDarkMode(true);
       document.documentElement.classList.add('dark');
     } else {

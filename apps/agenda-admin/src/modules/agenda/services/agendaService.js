@@ -69,6 +69,11 @@ const agendaService = {
     getAgendaCategories: async () => {
         const response = await axiosInstance.get('/references/agenda-categories');
         return response.data.data;
+    },
+
+    getInstansi: async () => {
+        const response = await axiosInstance.get('/references/instansi');
+        return response.data.data;
     }
 };
 

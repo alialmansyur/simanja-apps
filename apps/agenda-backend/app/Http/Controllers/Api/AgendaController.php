@@ -7,6 +7,7 @@ use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use App\Models\Agenda;
+use App\Services\AgendaValidationService;
 
 class AgendaController extends Controller
 {
@@ -143,6 +144,7 @@ class AgendaController extends Controller
             'officers.*.positionId' => 'required_with:officers|integer',
             
             // Meta
+            'instansiId' => 'nullable|integer|exists:ref_instansi,id',
             'stNumber' => 'nullable|string',
             'ndNumber' => 'nullable|string',
             'description' => 'nullable|string',
@@ -179,28 +181,35 @@ class AgendaController extends Controller
         $status = DB::table('ref_statuses')->where('name', $validated['status'])->first();
         $statusId = $status ? $status->id : null;
 
-        // Duplicate Validation Check (Unit + Kegiatan + Tanggal), exclude self
-        if ($categoryId && $validated['startDate']) {
-            $duplicateQuery = DB::table('trx_agendas')
-                ->where('id', '!=', $agenda->id)
-                ->where('ref_unit_id', $agenda->ref_unit_id)
-                ->where('ref_agenda_category_id', $categoryId)
-                ->where('start_date', $validated['startDate'])
-                ->whereNull('deleted_at');
-                
-            $exists = $duplicateQuery->exists();
-            if ($exists) {
-                return response()->json([
-                    'message' => 'Agenda dengan Unit, Kategori Kegiatan, dan Tanggal yang sama sudah ada.',
-                    'error' => 'Duplicate Agenda'
-                ], 422);
-            }
+        // Duplicate Validation Check (Unit + Category + Date Range + Location), excluding self
+        $validationService = app(AgendaValidationService::class);
+        $duplicateError = $validationService->checkDuplicate(
+            unitId: $agenda->ref_unit_id,
+            categoryId: $categoryId,
+            startDate: $validated['startDate'],
+            endDate: $validated['endDate'] ?? $validated['startDate'],
+            startTime: $validated['startTime'] ?? null,
+            endTime: $validated['endTime'] ?? null,
+            isOnline: (bool)$validated['isOnline'],
+            roomIds: $validated['roomIds'] ?? [],
+            offlineLocation: $validated['offlineLocation'] ?? null,
+            onlineMeetingId: $validated['onlineMeetingId'] ?? null,
+            onlineUrl: $validated['onlineUrl'] ?? null,
+            excludeAgendaId: $agenda->id
+        );
+
+        if ($duplicateError) {
+            return response()->json([
+                'message' => $duplicateError,
+                'error' => 'Duplicate Agenda'
+            ], 422);
         }
 
         DB::beginTransaction();
         try {
             DB::table('trx_agendas')->where('id', $agenda->id)->update([
                 'title' => $validated['title'],
+                'ref_instansi_id' => $validated['instansiId'] ?? null,
                 'ref_agenda_category_id' => $categoryId,
                 'ref_status_id' => $statusId,
                 'ref_event_type_id' => $validated['eventTypeId'] ?? null,
@@ -332,6 +341,7 @@ class AgendaController extends Controller
             ->leftJoin('ref_event_types', 'trx_agendas.ref_event_type_id', '=', 'ref_event_types.id')
             ->leftJoin('ref_pegawai', 'trx_agendas.pic_employee_id', '=', 'ref_pegawai.id')
             ->leftJoin('ref_statuses', 'trx_agendas.ref_status_id', '=', 'ref_statuses.id')
+            ->leftJoin('ref_instansi', 'trx_agendas.ref_instansi_id', '=', 'ref_instansi.id')
             ->whereNull('trx_agendas.deleted_at')
             ->select(
                 'trx_agendas.id',
@@ -351,6 +361,9 @@ class AgendaController extends Controller
                 'trx_agendas.nd_number',
                 'trx_agendas.publish_type',
                 'trx_agendas.ref_agenda_category_id',
+                'trx_agendas.ref_instansi_id',
+                'ref_instansi.nama as instansi_name',
+                'ref_instansi.kodeins as instansi_code',
                 'ref_agenda_categories.name as category_name',
                 'ref_event_types.name as event_type_name',
                 'ref_pegawai.nama as pic_name',
@@ -453,6 +466,9 @@ class AgendaController extends Controller
             'roomId' => null, // legacy
             'roomIds' => $agenda->rooms ? $agenda->rooms->pluck('id')->toArray() : [],
             'categoryId' => $agenda->ref_agenda_category_id,
+            'instansiId' => $agenda->ref_instansi_id,
+            'instansiName' => $agenda->instansi_name ?? null,
+            'instansiCode' => $agenda->instansi_code ?? null,
         ];
     }
 

@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useCallback, useRef } from 'react';
+import React, { useEffect, useState, useCallback, useRef, useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import Swal from 'sweetalert2';
 import { confirmDialog } from '../../../utils/sweetalert';
@@ -37,10 +37,14 @@ import 'react-datepicker/dist/react-datepicker.css';
 import Select from 'react-select';
 import { Calendar, momentLocalizer } from 'react-big-calendar';
 import moment from 'moment';
+import 'moment/locale/id';
 import 'react-big-calendar/lib/css/react-big-calendar.css';
 import * as XLSX from 'xlsx';
 import jsPDF from 'jspdf';
 import 'jspdf-autotable';
+
+moment.locale('id');
+const localizer = momentLocalizer(moment);
 import agendaService from '../services/agendaService';
 import AgendaManagementWorkspaceSkeleton from './AgendaManagementWorkspaceSkeleton';
 import Button, { cn } from '../../../components/ui/Button';
@@ -87,6 +91,7 @@ const createInitialForm = () => ({
   stNumber: '',
     ndNumber: '',
   description: '',
+  instansiId: '',
   isAllEmployees: true,
   participants: [],
   eventTypeId: '',
@@ -104,12 +109,147 @@ const formatAgendaDate = (dateValue) => {
   }).format(new Date(`${dateValue}T00:00:00`));
 };
 
-const LOADING_DELAY_MS = 650;
+const CustomEvent = ({ event }) => {
+  return (
+    <div className="group relative flex h-full w-full items-center font-bold">
+      <div className="w-full truncate">{event.title}</div>
+      <div className="invisible absolute bottom-full left-1/2 z-[100] mb-2 w-max max-w-[250px] -translate-x-1/2 rounded-xl border border-slate-700 bg-slate-950 p-3 text-left text-white opacity-0 shadow-2xl transition-all duration-200 group-hover:visible group-hover:opacity-100 font-normal">
+        <p className="text-sm font-bold leading-tight whitespace-normal">{event.title}</p>
+        <div className="mt-2 flex items-center gap-1.5 text-xs text-slate-300 font-semibold">
+          <Clock size={12} />
+          <span>
+            {moment(event.start).format('HH:mm')} - {moment(event.end).format('HH:mm')}
+          </span>
+        </div>
+        <div className="mt-1 flex items-start gap-1.5 text-xs text-slate-300 font-medium">
+          <MapPin size={12} className="mt-0.5 shrink-0" />
+          <span className="whitespace-normal leading-tight">{event.location}</span>
+        </div>
+      </div>
+    </div>
+  );
+};
+
+const CustomToolbar = (toolbar) => {
+  const [showDatePicker, setShowDatePicker] = useState(false);
+  const pickerRef = useRef(null);
+  const months = ['Jan', 'Feb', 'Mar', 'Apr', 'Mei', 'Jun', 'Jul', 'Agu', 'Sep', 'Okt', 'Nov', 'Des'];
+
+  useEffect(() => {
+    const handleClickOutside = (event) => {
+      if (pickerRef.current && !pickerRef.current.contains(event.target)) {
+        setShowDatePicker(false);
+      }
+    };
+
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
+
+  return (
+    <div className="mb-6 flex flex-col items-center justify-between gap-4 xl:flex-row">
+      <div className="flex rounded-2xl bg-slate-100 p-1 text-sm text-slate-700 dark:bg-slate-900 dark:text-slate-300">
+        <button
+          type="button"
+          onClick={() => toolbar.onNavigate('TODAY')}
+          className="flex cursor-pointer items-center gap-2 rounded-[1rem] px-4 py-3 font-bold transition hover:bg-white dark:hover:bg-slate-800"
+        >
+          <CalendarDays size={16} />
+          <span>Hari Ini</span>
+        </button>
+        <button
+          type="button"
+          onClick={() => toolbar.onNavigate('PREV')}
+          className="cursor-pointer rounded-[1rem] px-4 py-3 font-bold transition hover:bg-white dark:hover:bg-slate-800"
+        >
+          <ChevronLeft size={16} />
+        </button>
+        <button
+          type="button"
+          onClick={() => toolbar.onNavigate('NEXT')}
+          className="cursor-pointer rounded-[1rem] px-4 py-3 font-bold transition hover:bg-white dark:hover:bg-slate-800"
+        >
+          <ChevronRight size={16} />
+        </button>
+      </div>
+
+      <div ref={pickerRef} className="relative">
+        <button
+          type="button"
+          onClick={() => setShowDatePicker((current) => !current)}
+          className="flex cursor-pointer items-center gap-2 rounded-[1rem] px-3 py-2 text-2xl font-extrabold tracking-tight text-slate-900 transition hover:bg-slate-100 dark:text-white dark:hover:bg-slate-900/70"
+        >
+          <span>{toolbar.label}</span>
+          <ChevronDown size={18} className={showDatePicker ? 'rotate-180 text-blue-500 dark:text-blue-400' : 'text-slate-400'} />
+        </button>
+
+        {showDatePicker ? (
+          <div className="absolute left-1/2 top-full z-40 mt-3 w-72 -translate-x-1/2 rounded-[var(--radius-card)] border border-slate-200 bg-white p-4 shadow-2xl dark:border-slate-700 dark:bg-slate-900">
+            <div className="mb-4 flex items-center justify-between">
+              <button
+                type="button"
+                onClick={() => toolbar.onNavigate('DATE', new Date(toolbar.date.getFullYear() - 1, toolbar.date.getMonth(), 1))}
+                className="cursor-pointer rounded-xl p-2 font-bold text-slate-500 transition hover:bg-slate-100 dark:text-slate-300 dark:hover:bg-slate-800"
+              >
+                <ChevronLeft size={16} />
+              </button>
+              <span className="text-lg font-bold text-slate-900 dark:text-white">{toolbar.date.getFullYear()}</span>
+              <button
+                type="button"
+                onClick={() => toolbar.onNavigate('DATE', new Date(toolbar.date.getFullYear() + 1, toolbar.date.getMonth(), 1))}
+                className="cursor-pointer rounded-xl p-2 font-bold text-slate-500 transition hover:bg-slate-100 dark:text-slate-300 dark:hover:bg-slate-800"
+              >
+                <ChevronRight size={16} />
+              </button>
+            </div>
+            <div className="grid grid-cols-3 gap-2">
+              {months.map((month, index) => (
+                <button
+                  key={month}
+                  type="button"
+                  onClick={() => {
+                    toolbar.onNavigate('DATE', new Date(toolbar.date.getFullYear(), index, 1));
+                    setShowDatePicker(false);
+                  }}
+                  className={`cursor-pointer rounded-xl px-3 py-2 text-sm font-bold transition ${
+                    toolbar.date.getMonth() === index
+                      ? 'bg-blue-600 text-white'
+                      : 'text-slate-600 hover:bg-slate-100 dark:text-slate-300 dark:hover:bg-slate-800'
+                  }`}
+                >
+                  {month}
+                </button>
+              ))}
+            </div>
+          </div>
+        ) : null}
+      </div>
+
+      <div className="flex rounded-2xl bg-slate-100 p-1 text-sm text-slate-600 dark:bg-slate-900 dark:text-slate-300">
+        {['month', 'week', 'day'].map((viewName) => (
+          <button
+            key={viewName}
+            type="button"
+            onClick={() => toolbar.onView(viewName)}
+            className={cn(
+              "cursor-pointer rounded-[1rem] px-5 py-3 font-bold capitalize transition",
+              toolbar.view === viewName
+                ? 'bg-white text-blue-600 shadow-xs dark:bg-slate-700 dark:text-blue-300'
+                : 'text-slate-600 hover:bg-white/80 dark:text-slate-400 dark:hover:bg-slate-800'
+            )}
+          >
+            {viewName === 'month' ? 'Bulan' : viewName === 'week' ? 'Minggu' : 'Hari'}
+          </button>
+        ))}
+      </div>
+    </div>
+  );
+};
 
 const AgendaManagementWorkspace = () => {
   const { user } = useAuth();
   
-    const canManage = (activity) => {
+  const canManage = (activity) => {
     if (!user) return false;
     if (user.role?.name === "Super Admin" || user.role?.name === "Admin") return true;
     if (String(activity.createdBy) === String(user.id)) return true;
@@ -134,6 +274,26 @@ const AgendaManagementWorkspace = () => {
   const [viewMode, setViewMode] = useState('list'); // 'list' | 'calendar'
   const [calendarDate, setCalendarDate] = useState(new Date());
   const [calendarView, setCalendarView] = useState('month');
+
+  const calendarEvents = useMemo(() => {
+    return activities.map((a) => {
+      const safeStartDate = (a.startDate || a.start_date || a.dateValue || moment().format('YYYY-MM-DD')).trim();
+      const safeEndDate = (a.endDate || a.end_date || safeStartDate).trim();
+      const safeStartTime = (a.startTime || a.start_time || '00:00:00').trim();
+      const safeEndTime = (a.endTime || a.end_time || '23:59:59').trim();
+
+      const start = new Date(`${safeStartDate}T${safeStartTime.length === 5 ? safeStartTime + ':00' : safeStartTime}`);
+      const end = new Date(`${safeEndDate}T${safeEndTime.length === 5 ? safeEndTime + ':00' : safeEndTime}`);
+
+      return {
+        title: a.title || 'Tanpa Judul',
+        start: isNaN(start.getTime()) ? new Date() : start,
+        end: isNaN(end.getTime()) ? new Date() : end,
+        resource: a,
+        location: a.room || a.location || '-',
+      };
+    });
+  }, [activities]);
 
   const handleExportExcel = () => {
     const ws = XLSX.utils.json_to_sheet(activities.map(a => ({
@@ -215,23 +375,26 @@ const AgendaManagementWorkspace = () => {
   const [availableEmployees, setAvailableEmployees] = useState([]);
   const [availableRooms, setAvailableRooms] = useState([]);
   const [categories, setCategories] = useState([]);
+  const [instansiList, setInstansiList] = useState([]);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   useEffect(() => {
     const fetchRefs = async () => {
       try {
-        const [roomsRes, empRes, evTypeRes, offPosRes, catRes] = await Promise.all([
+        const [roomsRes, empRes, evTypeRes, offPosRes, catRes, instansiRes] = await Promise.all([
           agendaService.getRooms(),
           agendaService.getEmployees(),
           agendaService.getEventTypes(),
           agendaService.getOfficerPositions(),
-          agendaService.getAgendaCategories()
+          agendaService.getAgendaCategories(),
+          agendaService.getInstansi()
         ]);
         setRooms(roomsRes || []);
         setEmployees(empRes || []);
         setEventTypes(evTypeRes || []);
         setOfficerPositions(offPosRes || []);
         setCategories(catRes || []);
+        setInstansiList(instansiRes || []);
       } catch (err) {
         console.error('Failed fetching refs', err);
       }
@@ -277,9 +440,10 @@ const AgendaManagementWorkspace = () => {
     }
 
     try {
+      const isCal = viewMode === 'calendar';
       const params = {
-        page: currentPage,
-        per_page: pageSize,
+        page: isCal ? 1 : currentPage,
+        per_page: isCal ? 1000 : pageSize,
         search: searchQuery,
         category: categoryFilter,
         start_date: startDateFilter,
@@ -298,7 +462,7 @@ const AgendaManagementWorkspace = () => {
     } finally {
       setIsLoading(false);
     }
-  }, [uuid, currentPage, pageSize, searchQuery, categoryFilter, startDateFilter, endDateFilter, sortConfig]);
+  }, [uuid, currentPage, pageSize, searchQuery, categoryFilter, startDateFilter, endDateFilter, sortConfig, viewMode]);
 
   useEffect(() => {
     const fetchUnitInfo = async () => {
@@ -316,10 +480,10 @@ const AgendaManagementWorkspace = () => {
     if (selectedUnit) {
       const delayDebounceFn = setTimeout(() => {
         loadActivities(true);
-      }, 500);
+      }, 400);
       return () => clearTimeout(delayDebounceFn);
     }
-  }, [loadActivities, selectedUnit]);
+  }, [loadActivities, selectedUnit, viewMode]);
 
   useEffect(() => {
     setCurrentPage(1);
@@ -399,6 +563,7 @@ const AgendaManagementWorkspace = () => {
       stNumber: activity.stNumber || '',
         ndNumber: activity.ndNumber || '',
       description: activity.description || '',
+      instansiId: activity.instansiId ? activity.instansiId.toString() : '',
       isAllEmployees: activity.isAllEmployees ?? true,
       participants: activity.participants ? activity.participants.map(p => p.value ? p.value.toString() : '') : [],
       eventTypeId: activity.eventTypeId ? activity.eventTypeId.toString() : '',
@@ -433,7 +598,9 @@ const AgendaManagementWorkspace = () => {
         onlineMeetingId: agendaForm.onlineMeetingId.trim(),
         onlinePassword: agendaForm.onlinePassword.trim(),
         stNumber: agendaForm.stNumber.trim(),
+        ndNumber: agendaForm.ndNumber ? agendaForm.ndNumber.trim() : null,
         description: agendaForm.description.trim(),
+        instansiId: agendaForm.instansiId ? parseInt(agendaForm.instansiId, 10) : null,
         isAllEmployees: agendaForm.isAllEmployees,
         participants: agendaForm.isAllEmployees ? [] : agendaForm.participants.map(id => parseInt(id, 10)),
         eventTypeId: agendaForm.category === 'Fasilitasi CAT' && agendaForm.eventTypeId ? parseInt(agendaForm.eventTypeId, 10) : null,
@@ -490,25 +657,27 @@ const AgendaManagementWorkspace = () => {
   };
 
   const SortableHead = ({ label, sortKey, align = 'left' }) => (
-    <th className={cn('px-5 py-3', align === 'right' ? 'text-right' : 'text-left')}>
+    <th className={cn('px-5 py-3.5 text-xs font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400', align === 'right' ? 'text-right' : 'text-left')}>
       <button
         type="button"
         onClick={() => handleSort(sortKey)}
         className={cn(
-          'inline-flex cursor-pointer items-center gap-1 text-[8px] font-extrabold uppercase tracking-[0.28em] transition hover:text-slate-700 dark:hover:text-slate-200',
-          sortConfig.key === sortKey ? 'text-slate-700 dark:text-slate-200' : 'text-slate-500 dark:text-slate-400'
+          'inline-flex cursor-pointer items-center gap-1.5 text-xs font-semibold uppercase tracking-wider text-inherit transition hover:text-slate-700 dark:hover:text-slate-200',
+          sortConfig.key === sortKey ? 'text-slate-700 dark:text-slate-200' : ''
         )}
       >
         <span>{label}</span>
-        <ChevronsUpDown size={14} strokeWidth={1.75} />
+        <ChevronsUpDown size={13} strokeWidth={1.75} />
       </button>
     </th>
   );
 
   const eventStyleGetter = (event) => {
     let backgroundColor = '#3b82f6';
-    if (event.resource?.category === 'rapat' || event.resource?.category?.toLowerCase().includes('rapat')) backgroundColor = '#10b981';
-    if (event.resource?.category === 'sosialisasi' || event.resource?.category?.toLowerCase().includes('sosialisasi')) backgroundColor = '#f59e0b';
+    const cat = (event.resource?.category || '').toLowerCase();
+    if (cat.includes('rapat')) backgroundColor = '#10b981';
+    if (cat.includes('sosialisasi')) backgroundColor = '#f59e0b';
+    if (cat.includes('pembahasan') || cat.includes('monitoring')) backgroundColor = '#06b6d4';
 
     return {
       style: {
@@ -517,145 +686,11 @@ const AgendaManagementWorkspace = () => {
         border: '0px',
         color: '#fff',
         fontSize: '0.8rem',
-        fontWeight: '600',
+        fontWeight: '700',
         opacity: 0.96,
         padding: '3px 8px',
       },
     };
-  };
-
-  const CustomEvent = ({ event }) => {
-    return (
-      <div className="group relative flex h-full w-full items-center">
-        <div className="w-full truncate">{event.title}</div>
-        <div className="invisible absolute bottom-full left-1/2 z-[100] mb-2 w-max max-w-[250px] -translate-x-1/2 rounded-xl border border-slate-700 bg-slate-950 p-3 text-left text-white opacity-0 shadow-2xl transition-all duration-200 group-hover:visible group-hover:opacity-100">
-          <p className="text-sm font-bold leading-tight whitespace-normal">{event.title}</p>
-          <div className="mt-2 flex items-center gap-1.5 text-xs text-slate-300">
-            <Clock size={12} />
-            <span>
-              {moment(event.start).format('HH:mm')} - {moment(event.end).format('HH:mm')}
-            </span>
-          </div>
-          <div className="mt-1 flex items-start gap-1.5 text-xs text-slate-300">
-            <MapPin size={12} className="mt-0.5 shrink-0" />
-            <span className="whitespace-normal leading-tight">{event.location}</span>
-          </div>
-        </div>
-      </div>
-    );
-  };
-
-  const CustomToolbar = (toolbar) => {
-    const [showDatePicker, setShowDatePicker] = useState(false);
-    const pickerRef = useRef(null);
-    const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
-
-    useEffect(() => {
-      const handleClickOutside = (event) => {
-        if (pickerRef.current && !pickerRef.current.contains(event.target)) {
-          setShowDatePicker(false);
-        }
-      };
-
-      document.addEventListener('mousedown', handleClickOutside);
-      return () => document.removeEventListener('mousedown', handleClickOutside);
-    }, []);
-
-    return (
-      <div className="mb-6 flex flex-col items-center justify-between gap-4 xl:flex-row">
-        <div className="flex rounded-2xl bg-slate-100 p-1 text-sm text-slate-600 dark:bg-slate-900 dark:text-slate-300">
-          <button
-            type="button"
-            onClick={() => toolbar.onNavigate('TODAY')}
-            className="flex cursor-pointer items-center gap-2 rounded-[1rem] px-4 py-3 font-semibold transition hover:bg-white dark:hover:bg-slate-800"
-          >
-            <CalendarDays size={16} />
-            <span>Hari Ini</span>
-          </button>
-          <button
-            type="button"
-            onClick={() => toolbar.onNavigate('PREV')}
-            className="cursor-pointer rounded-[1rem] px-4 py-3 transition hover:bg-white dark:hover:bg-slate-800"
-          >
-            <ChevronLeft size={16} />
-          </button>
-          <button
-            type="button"
-            onClick={() => toolbar.onNavigate('NEXT')}
-            className="cursor-pointer rounded-[1rem] px-4 py-3 transition hover:bg-white dark:hover:bg-slate-800"
-          >
-            <ChevronRight size={16} />
-          </button>
-        </div>
-
-        <div ref={pickerRef} className="relative">
-          <button
-            type="button"
-            onClick={() => setShowDatePicker((current) => !current)}
-            className="flex cursor-pointer items-center gap-2 rounded-[1rem] px-3 py-2 text-2xl font-bold tracking-tight text-slate-900 transition hover:bg-slate-100 dark:text-white dark:hover:bg-slate-900/70"
-          >
-            <span>{toolbar.label}</span>
-            <ChevronDown size={18} className={showDatePicker ? 'rotate-180 text-blue-500 dark:text-blue-400' : 'text-slate-400'} />
-          </button>
-
-          {showDatePicker ? (
-            <div className="absolute left-1/2 top-full z-40 mt-3 w-72 -translate-x-1/2 rounded-[var(--radius-card)] border border-slate-200 bg-white p-4 shadow-2xl dark:border-slate-700 dark:bg-slate-900">
-              <div className="mb-4 flex items-center justify-between">
-                <button
-                  type="button"
-                  onClick={() => toolbar.onNavigate('DATE', new Date(toolbar.date.getFullYear() - 1, toolbar.date.getMonth(), 1))}
-                  className="cursor-pointer rounded-xl p-2 text-slate-500 transition hover:bg-slate-100 dark:text-slate-300 dark:hover:bg-slate-800"
-                >
-                  <ChevronLeft size={16} />
-                </button>
-                <span className="text-lg font-bold text-slate-900 dark:text-white">{toolbar.date.getFullYear()}</span>
-                <button
-                  type="button"
-                  onClick={() => toolbar.onNavigate('DATE', new Date(toolbar.date.getFullYear() + 1, toolbar.date.getMonth(), 1))}
-                  className="cursor-pointer rounded-xl p-2 text-slate-500 transition hover:bg-slate-100 dark:text-slate-300 dark:hover:bg-slate-800"
-                >
-                  <ChevronRight size={16} />
-                </button>
-              </div>
-              <div className="grid grid-cols-3 gap-2">
-                {months.map((month, index) => (
-                  <button
-                    key={month}
-                    type="button"
-                    onClick={() => {
-                      toolbar.onNavigate('DATE', new Date(toolbar.date.getFullYear(), index, 1));
-                      setShowDatePicker(false);
-                    }}
-                    className={`cursor-pointer rounded-xl px-3 py-2 text-sm font-medium transition ${
-                      toolbar.date.getMonth() === index
-                        ? 'bg-blue-600 text-white'
-                        : 'text-slate-600 hover:bg-slate-100 dark:text-slate-300 dark:hover:bg-slate-800'
-                    }`}
-                  >
-                    {month}
-                  </button>
-                ))}
-              </div>
-            </div>
-          ) : null}
-        </div>
-
-        <div className="flex rounded-2xl bg-slate-100 p-1 text-sm text-slate-600 dark:bg-slate-900 dark:text-slate-300">
-          {['month', 'week', 'day'].map((viewName) => (
-            <button
-              key={viewName}
-              type="button"
-              onClick={() => toolbar.onView(viewName)}
-              className={`cursor-pointer rounded-[1rem] px-5 py-3 font-semibold capitalize transition ${
-                toolbar.view === viewName ? 'bg-white text-blue-600 dark:bg-slate-700 dark:text-blue-300' : 'hover:bg-white dark:hover:bg-slate-800'
-              }`}
-            >
-              {viewName === 'month' ? 'Bulan' : viewName === 'week' ? 'Minggu' : 'Hari'}
-            </button>
-          ))}
-        </div>
-      </div>
-    );
   };
 
   return (
@@ -665,7 +700,7 @@ const AgendaManagementWorkspace = () => {
           <button
             type="button"
             onClick={() => navigate('/admin/agenda')}
-            className="inline-flex cursor-pointer items-center gap-2 rounded-[0.95em] border border-slate-200 bg-slate-50 px-3 py-2 text-[0.72rem] font-extrabold tracking-[0.01em] text-slate-600 transition hover:border-blue-200 hover:text-blue-600 dark:border-slate-800 dark:bg-slate-950/60 dark:text-slate-300 dark:hover:border-blue-900 dark:hover:text-blue-300"
+            className="inline-flex cursor-pointer items-center gap-2 rounded-[0.95em] border border-slate-200 bg-slate-50 px-3.5 py-2 text-[0.8rem] font-semibold text-slate-700 transition hover:border-blue-200 hover:text-blue-600 dark:border-slate-800 dark:bg-slate-950/60 dark:text-slate-300 dark:hover:border-blue-900 dark:hover:text-blue-300"
           >
             <ArrowLeft size={16} />
             Kembali
@@ -680,14 +715,14 @@ const AgendaManagementWorkspace = () => {
         </div>
 
         <div className="flex flex-wrap gap-3">
-          <Button variant="secondary" size="sm" className="cursor-pointer gap-2 border border-slate-200 dark:border-slate-700">
+          <Button variant="secondary" size="sm" className="cursor-pointer gap-2">
             <FileDown size={16} />
             Import
           </Button>
           <Button
             variant="secondary"
             size="sm"
-            className="cursor-pointer gap-2 border border-slate-200 dark:border-slate-700"
+            className="cursor-pointer gap-2"
             onClick={handleExportExcel}
           >
             <Download size={16} />
@@ -697,7 +732,7 @@ const AgendaManagementWorkspace = () => {
             variant="secondary"
             size="sm"
             disabled={isLoading}
-            className="cursor-pointer gap-2 rounded-[1em] shadow-sm transition-colors disabled:opacity-50 border border-slate-200 dark:border-slate-700 bg-white hover:bg-slate-50 dark:bg-slate-900 dark:hover:bg-slate-800"
+            className="cursor-pointer gap-2 disabled:opacity-50"
             onClick={handleRefresh}
             title="Refresh Data"
           >
@@ -743,57 +778,59 @@ const AgendaManagementWorkspace = () => {
         <div className="border-b border-slate-200 px-5 py-4 dark:border-slate-800">
           <div className="flex flex-col gap-3 xl:flex-row xl:items-center xl:justify-between">
             <div>
-              <h2 className="text-sm font-extrabold text-slate-900 dark:text-slate-50">Daftar Agenda Unit</h2>
-              <p className="mt-1 text-xs text-slate-500 dark:text-slate-400">
+              <h2 className="text-base font-bold text-slate-900 dark:text-slate-100">Daftar Agenda Unit</h2>
+              <p className="mt-0.5 text-xs text-slate-500 dark:text-slate-400">
                 {totalItems} agenda ditemukan dari {activities.length} data.
               </p>
             </div>
 
-              <div className="flex flex-wrap items-center gap-3">
-                <button
-                  type="button"
-                  onClick={() => setIsFilterVisible((current) => !current)}
-                  className="flex h-[42px] cursor-pointer items-center gap-2 rounded-[0.95em] border border-slate-200 bg-slate-50 px-3 text-[0.72rem] font-extrabold tracking-[0.01em] text-blue-600 transition hover:border-blue-200 hover:text-blue-700 dark:border-slate-800 dark:bg-slate-950/60 dark:text-blue-300 dark:hover:border-blue-900"
+            <div className="flex flex-wrap items-center gap-2.5">
+              <button
+                type="button"
+                onClick={() => setIsFilterVisible((current) => !current)}
+                className="inline-flex h-9 cursor-pointer items-center gap-1.5 rounded-[0.95em] border border-slate-200 bg-slate-50 px-3.5 text-xs font-semibold text-blue-600 transition hover:border-blue-200 hover:bg-slate-100 dark:border-slate-800 dark:bg-slate-950/60 dark:text-blue-400 dark:hover:border-blue-900"
               >
-                <Filter size={16} />
-                Filter Data
-                <ChevronDown size={16} className={cn('transition duration-200', isFilterVisible ? 'rotate-180' : '')} />
+                <Filter size={14} />
+                <span>Filter Data</span>
+                <ChevronDown size={14} className={cn('transition duration-200', isFilterVisible ? 'rotate-180' : '')} />
               </button>
 
-                <div className="admin-toolbar-control flex h-[42px] items-center gap-2 rounded-[0.95em] border border-slate-200 bg-slate-50 px-3 text-[0.75rem] font-extrabold tracking-[0.01em] text-slate-500 dark:border-slate-800 dark:bg-slate-950/60 dark:text-slate-400">
-                  <ChevronsLeftRight size={16} className="text-slate-400 dark:text-slate-500" />
-                  <span>Show</span>
-                  <select
+              <div className="inline-flex h-9 items-center gap-1.5 rounded-[0.95em] border border-slate-200 bg-slate-50 px-3 text-xs font-semibold text-slate-600 dark:border-slate-800 dark:bg-slate-950/60 dark:text-slate-400">
+                <ChevronsLeftRight size={14} className="text-slate-400 dark:text-slate-500" />
+                <span>Show</span>
+                <select
                   value={pageSize}
                   onChange={(event) => setPageSize(Number(event.target.value))}
-                  className="cursor-pointer bg-transparent text-slate-700 outline-none dark:text-slate-200"
+                  className="cursor-pointer bg-transparent font-bold text-slate-800 outline-none dark:text-slate-100"
                 >
                   <option value={5}>5</option>
                   <option value={10}>10</option>
                   <option value={25}>25</option>
-                    <option value={50}>50</option>
-                  </select>
-                </div>
+                  <option value={50}>50</option>
+                </select>
+              </div>
 
-                {/* View Toggle */}
-                <div className="relative flex h-[42px] items-center rounded-[0.95em] border border-slate-200 bg-slate-50 p-[3px] dark:border-slate-800 dark:bg-slate-950/60 sm:ml-auto">
-                  <div className={cn("absolute inset-y-[3px] w-[calc(50%-3px)] rounded-[0.75em] bg-white shadow-sm transition-all duration-300 ease-in-out dark:bg-slate-800", viewMode === 'calendar' ? "left-[50%]" : "left-[3px]")} />
-                  <button
-                    onClick={() => setViewMode('list')}
-                    className={cn("relative z-10 flex h-full w-24 cursor-pointer items-center justify-center gap-2 rounded-[0.75em] text-[0.72rem] font-extrabold tracking-[0.01em] transition-colors whitespace-nowrap", viewMode === 'list' ? 'text-blue-600 dark:text-blue-400' : 'text-slate-500 hover:text-slate-700 dark:text-slate-400')}
-                  >
-                    List
-                  </button>
-                  <button
-                    onClick={() => setViewMode('calendar')}
-                    className={cn("relative z-10 flex h-full w-24 cursor-pointer items-center justify-center gap-2 rounded-[0.75em] text-[0.72rem] font-extrabold tracking-[0.01em] transition-colors whitespace-nowrap", viewMode === 'calendar' ? 'text-blue-600 dark:text-blue-400' : 'text-slate-500 hover:text-slate-700 dark:text-slate-400')}
-                  >
-                    Kalender
-                  </button>
-                </div>
+              {/* View Toggle */}
+              <div className="relative inline-flex h-9 items-center rounded-[0.95em] border border-slate-200 bg-slate-50 p-0.5 dark:border-slate-800 dark:bg-slate-950/60 sm:ml-auto">
+                <div className={cn("absolute inset-y-0.5 w-[calc(50%-2px)] rounded-[0.75em] bg-white shadow-xs transition-all duration-200 ease-in-out dark:bg-slate-800", viewMode === 'calendar' ? "left-[50%]" : "left-0.5")} />
+                <button
+                  type="button"
+                  onClick={() => setViewMode('list')}
+                  className={cn("relative z-10 flex h-full w-20 cursor-pointer items-center justify-center rounded-[0.75em] text-xs font-bold transition-colors", viewMode === 'list' ? 'text-blue-600 dark:text-blue-400' : 'text-slate-600 hover:text-slate-900 dark:text-slate-400 dark:hover:text-slate-200')}
+                >
+                  List
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setViewMode('calendar')}
+                  className={cn("relative z-10 flex h-full w-20 cursor-pointer items-center justify-center rounded-[0.75em] text-xs font-bold transition-colors", viewMode === 'calendar' ? 'text-blue-600 dark:text-blue-400' : 'text-slate-600 hover:text-slate-900 dark:text-slate-400 dark:hover:text-slate-200')}
+                >
+                  Kalender
+                </button>
               </div>
             </div>
           </div>
+        </div>
 
         <div
           className={cn(
@@ -894,7 +931,7 @@ const AgendaManagementWorkspace = () => {
               animate={{ opacity: 1, scale: 1 }}
               exit={{ opacity: 0, scale: 0.98 }}
               transition={{ duration: 0.2 }}
-              className="admin-calendar-shell rounded-[0.95em] bg-slate-50 p-5 dark:bg-slate-900 h-[600px] w-full overflow-hidden"
+              className="admin-calendar-shell rounded-[0.95em] bg-slate-50 p-5 dark:bg-slate-900 w-full"
             >
             <style
               dangerouslySetInnerHTML={{
@@ -902,10 +939,10 @@ const AgendaManagementWorkspace = () => {
                   .admin-calendar-shell .rbc-toolbar { display: none; }
                   .admin-calendar-shell .rbc-header {
                     padding: 14px 0;
-                    font-weight: 600;
+                    font-weight: 700;
                     text-transform: uppercase;
-                    font-size: 0.78rem;
-                    color: #64748b;
+                    font-size: 0.8rem;
+                    color: #475569;
                     border-bottom: 1px solid #e2e8f0;
                     background: transparent;
                   }
@@ -935,6 +972,7 @@ const AgendaManagementWorkspace = () => {
                   .admin-calendar-shell .rbc-time-header-gutter,
                   .admin-calendar-shell .rbc-time-gutter .rbc-timeslot-group {
                     color: #0f172a;
+                    font-weight: 700;
                   }
                   .admin-calendar-shell .rbc-today { background-color: #eff6ff; }
                   .admin-calendar-shell .rbc-current-time-indicator { background-color: #ef4444; height: 2px; }
@@ -957,7 +995,7 @@ const AgendaManagementWorkspace = () => {
                     overflow: visible !important;
                   }
                   .dark .admin-calendar-shell .rbc-header {
-                    color: #93a4bf;
+                    color: #cbd5e1;
                     border-bottom-color: #243045;
                   }
                   .dark .admin-calendar-shell .rbc-month-view,
@@ -978,7 +1016,7 @@ const AgendaManagementWorkspace = () => {
                     background: #101826;
                   }
                   .dark .admin-calendar-shell .rbc-off-range-bg { background: #060b15; }
-                  .dark .admin-calendar-shell .rbc-off-range { color: #334155; }
+                  .dark .admin-calendar-shell .rbc-off-range { color: #475569; }
                   .dark .admin-calendar-shell .rbc-date-cell,
                   .dark .admin-calendar-shell .rbc-button-link,
                   .dark .admin-calendar-shell .rbc-label,
@@ -992,42 +1030,11 @@ const AgendaManagementWorkspace = () => {
               }}
             />
             <Calendar
-              localizer={momentLocalizer(moment)}
-              events={activities.map(a => {
-                const safeStartDate = (a.startDate || a.start_date || a.dateValue || new Date().toISOString().split('T')[0]).trim();
-                const safeEndDate = (a.endDate || a.end_date || safeStartDate).trim();
-                const safeStartTime = (a.startTime || a.start_time || '00:00:00').trim();
-                const safeEndTime = (a.endTime || a.end_time || '23:59:59').trim();
-                
-                // Construct ISO strings
-                const startString = `${safeStartDate}T${safeStartTime}`;
-                const endString = `${safeEndDate}T${safeEndTime}`;
-                
-                let start = new Date(startString);
-                let end = new Date(endString);
-                
-                // Ultimate fallback if parsing still fails
-                if (isNaN(start.getTime())) {
-                  start = new Date(safeStartDate); // Try parsing just the date
-                  if (isNaN(start.getTime())) start = new Date();
-                }
-                
-                if (isNaN(end.getTime())) {
-                  end = new Date(safeEndDate);
-                  if (isNaN(end.getTime())) end = start;
-                }
-                
-                return { 
-                  title: a.title || 'Tanpa Judul', 
-                  start, 
-                  end, 
-                  resource: a,
-                  location: a.room || a.location || '-'
-                };
-              })}
+              localizer={localizer}
+              events={calendarEvents}
               startAccessor="start"
               endAccessor="end"
-              style={{ height: '100%', width: '100%' }}
+              style={{ minHeight: 650 }}
               view={calendarView}
               onView={setCalendarView}
               date={calendarDate}
@@ -1035,6 +1042,7 @@ const AgendaManagementWorkspace = () => {
               onSelectEvent={event => setSelectedActivity(event.resource)}
               eventPropGetter={eventStyleGetter}
               components={{ toolbar: CustomToolbar, event: CustomEvent }}
+              views={['month', 'week', 'day']}
               messages={{
                 next: "Selanjutnya",
                 previous: "Sebelumnya",
@@ -1061,7 +1069,7 @@ const AgendaManagementWorkspace = () => {
                   <SortableHead label="Jadwal" sortKey="start_date" />
                   <SortableHead label="Status" sortKey="status_name" />
                   <SortableHead label="Lokasi" sortKey="room_name" />
-                  <th className="px-5 py-3 text-right text-[8px] font-extrabold uppercase tracking-[0.28em] text-slate-500 dark:text-slate-400">
+                  <th className="px-5 py-3.5 text-right text-xs font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400">
                     Aksi
                   </th>
                 </tr>
@@ -1081,9 +1089,9 @@ const AgendaManagementWorkspace = () => {
                   <tr key={activity.uuid} className="align-top transition hover:bg-slate-50/70 dark:hover:bg-slate-950/30">
                     <td className="px-5 py-4">
                       <div className="min-w-[15rem]">
-                        <p className="text-sm font-extrabold text-slate-900 dark:text-slate-50">{activity.title}</p>
+                        <p className="text-sm font-semibold text-slate-900 dark:text-slate-100">{activity.title}</p>
                         {activity.stNumber && activity.stNumber !== '0' && (
-                          <p className="mt-1 text-xs font-semibold text-slate-500 dark:text-slate-400">{activity.stNumber}</p>
+                          <p className="mt-1 text-xs text-slate-500 dark:text-slate-400">{activity.stNumber}</p>
                         )}
                         <div className="mt-2.5">
                           <span className={cn('inline-flex rounded-full px-2.5 py-1 text-xs font-bold', categoryTone[activity.category])}>
@@ -1200,6 +1208,21 @@ const AgendaManagementWorkspace = () => {
                   <div className="text-sm font-semibold text-slate-900 dark:text-white sm:w-2/3 sm:text-right">
                     {selectedActivity.description || '-'}
                   </div>
+                </div>
+
+                {/* Instansi */}
+                <div className="flex items-center justify-between py-4">
+                  <span className="text-sm font-medium text-slate-500 dark:text-slate-400">Instansi Penyelenggara / Mitra</span>
+                  <span className="text-sm font-semibold text-slate-900 dark:text-white sm:text-right">
+                    {selectedActivity.instansiName ? (
+                      <span className="inline-flex items-center gap-1.5 rounded-lg bg-blue-50 px-2.5 py-1 text-xs font-bold text-blue-700 dark:bg-blue-950/50 dark:text-blue-300">
+                        <Building2 size={13} />
+                        {selectedActivity.instansiName} {selectedActivity.instansiCode ? `(${selectedActivity.instansiCode})` : ''}
+                      </span>
+                    ) : (
+                      '-'
+                    )}
+                  </span>
                 </div>
 
                 {/* Kategori */}
@@ -1446,6 +1469,41 @@ const AgendaManagementWorkspace = () => {
                       className="w-full resize-none rounded-[0.95em] border border-slate-200 bg-white px-4 py-2.5 text-sm font-semibold text-slate-700 outline-none transition focus:border-blue-500 disabled:opacity-60 dark:border-slate-800 dark:bg-slate-900 dark:text-slate-100"
                     />
                   </label>
+
+                  {/* Instansi Penyelenggara / Mitra */}
+                  <div className="block md:col-span-2">
+                    <span className="mb-2 block text-sm font-semibold text-slate-700 dark:text-slate-200">
+                      Instansi Penyelenggara / Mitra
+                    </span>
+                    <div className="admin-filter-select">
+                      <Select
+                        classNamePrefix="admin-react-select"
+                        options={instansiList.map(item => ({
+                          value: item.id.toString(),
+                          label: item.kodeins ? `${item.nama} (${item.kodeins})` : item.nama,
+                          name: item.nama
+                        }))}
+                        value={
+                          agendaForm.instansiId && instansiList.find(i => i.id.toString() === agendaForm.instansiId.toString())
+                            ? {
+                                value: agendaForm.instansiId.toString(),
+                                label: instansiList.find(i => i.id.toString() === agendaForm.instansiId.toString()).kodeins
+                                  ? `${instansiList.find(i => i.id.toString() === agendaForm.instansiId.toString()).nama} (${instansiList.find(i => i.id.toString() === agendaForm.instansiId.toString()).kodeins})`
+                                  : instansiList.find(i => i.id.toString() === agendaForm.instansiId.toString()).nama
+                              }
+                            : null
+                        }
+                        onChange={(selected) => handleFormChange('instansiId', selected ? selected.value : '')}
+                        isClearable={true}
+                        isDisabled={isSubmitting}
+                        placeholder="-- Pilih atau cari instansi (opsional) --"
+                        noOptionsMessage={() => "Instansi tidak ditemukan"}
+                      />
+                    </div>
+                    <p className="mt-1.5 text-xs text-slate-400 dark:text-slate-500">
+                      Pilih instansi pemerintah/lembaga terkait jika agenda ini melibatkan instansi eksternal.
+                    </p>
+                  </div>
 
                   <label className="block">
                     <span className="mb-2 block text-sm font-semibold text-slate-700 dark:text-slate-200">

@@ -87,7 +87,7 @@ const createInitialForm = (module) => {
 
 const LOADING_DELAY_MS = 650;
 const tableHeadCellClass =
-  'px-5 py-3 align-middle uppercase text-slate-500 dark:text-slate-400';
+  'px-5 py-3.5 text-xs font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400';
 
 const MasterDataWorkspace = ({ moduleId, onBack }) => {
   const navigate = useNavigate();
@@ -312,12 +312,12 @@ const MasterDataWorkspace = ({ moduleId, onBack }) => {
         type="button"
         onClick={() => handleSort(sortKey)}
         className={cn(
-          'inline-flex cursor-pointer items-center gap-1.5 text-current transition hover:text-slate-700 dark:hover:text-slate-200',
+          'inline-flex cursor-pointer items-center gap-1.5 text-xs font-semibold uppercase tracking-wider text-inherit transition hover:text-slate-700 dark:hover:text-slate-200',
           sortConfig.key === sortKey ? 'text-slate-700 dark:text-slate-200' : ''
         )}
       >
         <span>{label}</span>
-        <ChevronsUpDown size={12} strokeWidth={2} />
+        <ChevronsUpDown size={13} strokeWidth={1.75} />
       </button>
     </th>
   );
@@ -518,7 +518,7 @@ const MasterDataWorkspace = ({ moduleId, onBack }) => {
                 <SortableHead label="Cakupan" sortKey="scope" />
                 <SortableHead label="Status" sortKey="status" />
                 <SortableHead label="Diperbarui" sortKey="updatedAt" />
-                <th className={cn(tableHeadCellClass, 'w-[10rem] min-w-[10rem] px-4 text-center')}>
+                <th className={cn(tableHeadCellClass, 'w-[10rem] min-w-[10rem] px-5 py-3.5 text-center')}>
                   Aksi
                 </th>
               </tr>

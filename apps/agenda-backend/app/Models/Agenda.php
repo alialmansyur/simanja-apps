@@ -16,9 +16,11 @@ class Agenda extends Model
 
     protected $fillable = [
         'st_number',
+        'nd_number',
         'title',
         'description',
         'ref_unit_id',
+        'ref_instansi_id',
         'ref_agenda_category_id',
         'ref_status_id',
         'ref_room_id',
@@ -48,6 +50,11 @@ class Agenda extends Model
     public function unit(): BelongsTo
     {
         return $this->belongsTo(Unit::class, 'ref_unit_id');
+    }
+
+    public function instansi(): BelongsTo
+    {
+        return $this->belongsTo(Instansi::class, 'ref_instansi_id');
     }
 
     public function category(): BelongsTo

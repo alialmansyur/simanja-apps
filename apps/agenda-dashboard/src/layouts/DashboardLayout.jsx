@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useMemo } from 'react';
-import { format, isToday } from 'date-fns';
+import { format } from 'date-fns';
 import { id } from 'date-fns/locale';
+import moment from 'moment';
 import { motion, AnimatePresence } from 'framer-motion';
 import Header from '../components/Header';
 import RunningText from '../components/RunningText';
@@ -94,9 +95,31 @@ const DashboardLayout = () => {
     }
 
     if (events && events.length > 0) {
-        const todaysAgendas = events.filter(event => isToday(new Date(event.start)));
+        const today = moment().startOf('day');
+        const todaysAgendas = events.filter(event => {
+            if (!event.start) return false;
+            const eventStart = moment(event.start_date_raw || event.start).startOf('day');
+            const eventEnd = moment(event.end_date_raw || event.end || event.start).startOf('day');
+            return today.isBetween(eventStart, eventEnd, 'day', '[]');
+        });
+
         if (todaysAgendas.length > 0) {
-            messages.push(`Agenda Hari Ini: ${todaysAgendas.map(a => `${a.title} (${format(new Date(a.start), 'HH:mm', {locale: id})})`).join(', ')}`);
+            const agendaDescriptions = todaysAgendas.map(a => {
+                const startTimeStr = a.start_time_raw 
+                  ? a.start_time_raw.substring(0, 5) 
+                  : (a.start ? moment(a.start).format('HH:mm') : '');
+                const endTimeStr = a.end_time_raw 
+                  ? a.end_time_raw.substring(0, 5) 
+                  : (a.end ? moment(a.end).format('HH:mm') : '');
+                  
+                const timeDisplay = (startTimeStr && endTimeStr && startTimeStr !== '00:00' && endTimeStr !== '23:59')
+                  ? ` (${startTimeStr} - ${endTimeStr} WIB)`
+                  : (startTimeStr && startTimeStr !== '00:00' ? ` (${startTimeStr} WIB)` : '');
+
+                return `${a.title}${timeDisplay}`;
+            });
+
+            messages.push(`Agenda Hari Ini: ${agendaDescriptions.join(' • ')}`);
         } else {
             messages.push('Tidak ada agenda yang terjadwal untuk hari ini.');
         }
@@ -119,11 +142,11 @@ const DashboardLayout = () => {
         {isInitialLoad && <SplashLoader />}
       </AnimatePresence>
       
-      <div className="flex flex-col h-screen w-full overflow-hidden bg-slate-100 dark:bg-slate-950 font-sans text-slate-900 dark:text-slate-100">
+      <div className="flex flex-col min-h-screen xl:h-screen w-full overflow-x-hidden overflow-y-auto xl:overflow-hidden bg-slate-100 dark:bg-slate-950 font-sans text-slate-900 dark:text-slate-100 scrollbar-hide">
         <Header onRefresh={handleRefresh} isRefreshing={isLoading} settings={settings} lastUpdated={lastUpdated} />
       <RunningText messages={runningTextMessages} />
       
-      <div className="flex flex-col xl:flex-row flex-1 overflow-hidden relative">
+      <div className="flex flex-col xl:flex-row flex-1 xl:overflow-hidden relative">
         {(isLoading && events.length === 0) || isManualRefresh ? (
           <>
             <DashboardSkeletonSidebar />
@@ -134,10 +157,10 @@ const DashboardLayout = () => {
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.5, ease: "easeOut" }}
-            className="flex flex-col xl:flex-row flex-1 overflow-y-auto xl:overflow-hidden w-full"
+            className="flex flex-col xl:flex-row flex-1 w-full xl:overflow-hidden"
           >
             <TimelineSidebar events={events} onEventClick={setSelectedEvent} />
-            <main className="flex-1 overflow-y-auto px-4 md:px-6 py-4 md:py-5 scrollbar-hide w-full xl:w-auto">
+            <main className="flex-1 px-4 md:px-6 py-4 md:py-5 w-full xl:w-auto xl:overflow-y-auto scrollbar-hide">
               <div className="max-w-7xl mx-auto">
                 <MainCalendar events={events} selectedEvent={selectedEvent} setSelectedEvent={setSelectedEvent} kpiData={kpiData} />
                 

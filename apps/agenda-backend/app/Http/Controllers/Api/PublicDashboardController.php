@@ -98,14 +98,28 @@ class PublicDashboardController extends Controller
     {
         $agendasQuery = Agenda::select('trx_agendas.*', 'ref_statuses.name as status_name')
             ->leftJoin('ref_statuses', 'trx_agendas.ref_status_id', '=', 'ref_statuses.id')
-            ->with(['rooms', 'pic', 'participants.employee', 'participants.officerPosition', 'category', 'unit'])
+            ->with(['rooms', 'pic', 'participants.employee', 'participants.officerPosition', 'category', 'unit', 'instansi'])
             ->whereNull('trx_agendas.deleted_at')
             ->where('trx_agendas.publish_type', 'public')
             ->whereIn('trx_agendas.ref_status_id', function ($query) {
                 $query->select('id')->from('ref_statuses')->whereNotIn('name', ['Draft', 'Batal']);
-            })
-            ->where('trx_agendas.start_date', '>=', Carbon::now()->subMonths(3)->toDateString())
-            ->where('trx_agendas.start_date', '<=', Carbon::now()->addMonths(3)->toDateString());
+            });
+
+        if ($request->has('year')) {
+            $agendasQuery->whereYear('trx_agendas.start_date', $request->query('year'));
+        } elseif ($request->has('start_date') && $request->has('end_date')) {
+            $agendasQuery->where('trx_agendas.start_date', '<=', $request->query('end_date'))
+                ->where(function($q) use ($request) {
+                    $q->where('trx_agendas.end_date', '>=', $request->query('start_date'))
+                      ->orWhere('trx_agendas.start_date', '>=', $request->query('start_date'));
+                });
+        } else {
+            // Default: include full current year and adjacent range
+            $agendasQuery->where(function($q) {
+                $q->whereYear('trx_agendas.start_date', Carbon::now()->year)
+                  ->orWhere('trx_agendas.start_date', '>=', Carbon::now()->subMonths(3)->toDateString());
+            });
+        }
 
         $agendas = $agendasQuery->get();
 
@@ -178,15 +192,17 @@ class PublicDashboardController extends Controller
                 'time' => $timeRange,
                 'start_date_raw' => $agenda->start_date ? $agenda->start_date->format('Y-m-d') : null,
                 'start_time_raw' => $agenda->start_time,
-                'end_date_raw' => $agenda->end_date ? $agenda->end_date->format('Y-m-d') : null,
+                'end_date_raw' => $agenda->end_date ? $agenda->end_date->format('Y-m-d') : ($agenda->start_date ? $agenda->start_date->format('Y-m-d') : null),
                 'end_time_raw' => $agenda->end_time,
                 'start' => $agenda->start_date ? $agenda->start_date->format('Y-m-d') . 'T' . ($agenda->start_time ?? '00:00:00') : null,
-                'end' => $agenda->end_date ? $agenda->end_date->format('Y-m-d') . 'T' . ($agenda->end_time ?? '23:59:59') : null,
+                'end' => ($agenda->end_date ?? $agenda->start_date) ? ($agenda->end_date ?? $agenda->start_date)->format('Y-m-d') . 'T' . ($agenda->end_time ?? '23:59:59') : null,
                 'type' => strtolower($agenda->category ? $agenda->category->name : 'Rapat'),
                 'isOnline' => (bool) $agenda->is_online,
                 'onlineUrl' => $agenda->online_url,
                 'onlineMeetingId' => $agenda->online_meeting_id,
                 'stNumber' => $agenda->st_number,
+                'ref_instansi_id' => $agenda->ref_instansi_id,
+                'instansi' => $agenda->instansi ? $agenda->instansi->nama : null,
                 'isAllEmployees' => (bool) $agenda->is_all_employees,
                 'team' => $agenda->unit ? $agenda->unit->name : 'Pusat',
                 'participants' => $participants,

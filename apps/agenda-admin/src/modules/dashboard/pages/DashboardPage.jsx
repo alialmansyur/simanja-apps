@@ -1,4 +1,5 @@
 import React, { useEffect, useState, useMemo } from 'react';
+import moment from 'moment';
 import DashboardKPICards from '../components/DashboardKPICards';
 import DashboardMainCalendar from '../components/DashboardMainCalendar';
 import DashboardRunningText from '../components/DashboardRunningText';
@@ -6,8 +7,6 @@ import DashboardPageSkeleton from '../components/DashboardPageSkeleton';
 import DashboardTimelineSidebar from '../components/DashboardTimelineSidebar';
 import { useDashboard } from '../hooks/useDashboard';
 import { useSettings } from '../../../contexts/SettingsContext';
-import { format, isToday, isWithinInterval, startOfDay } from 'date-fns';
-import { id } from 'date-fns/locale';
 import MfaActivationBanner from '../components/MfaActivationBanner';
 
 const DashboardPage = () => {
@@ -22,16 +21,33 @@ const DashboardPage = () => {
         messages.push(settings['dashboard.running_text']);
     }
 
-    // Add today's active agendas
+    // Add today's active agendas (inclusive multi-day)
     if (eventsData && eventsData.length > 0) {
-        const today = startOfDay(new Date());
+        const today = moment().startOf('day');
         const todaysAgendas = eventsData.filter(event => {
-            const start = startOfDay(new Date(event.start));
-            const end = startOfDay(new Date(event.end));
-            return isWithinInterval(today, { start, end });
+            if (!event.start) return false;
+            const eventStart = moment(event.start_date_raw || event.start).startOf('day');
+            const eventEnd = moment(event.end_date_raw || event.end || event.start).startOf('day');
+            return today.isBetween(eventStart, eventEnd, 'day', '[]');
         });
+
         if (todaysAgendas.length > 0) {
-            messages.push(`Agenda Hari Ini: ${todaysAgendas.map(a => `${a.title} (${format(new Date(a.start), 'HH:mm', {locale: id})})`).join(', ')}`);
+            const agendaDescriptions = todaysAgendas.map(a => {
+                const startTimeStr = a.start_time_raw 
+                  ? a.start_time_raw.substring(0, 5) 
+                  : (a.start ? moment(a.start).format('HH:mm') : '');
+                const endTimeStr = a.end_time_raw 
+                  ? a.end_time_raw.substring(0, 5) 
+                  : (a.end ? moment(a.end).format('HH:mm') : '');
+                  
+                const timeDisplay = (startTimeStr && endTimeStr && startTimeStr !== '00:00' && endTimeStr !== '23:59')
+                  ? ` (${startTimeStr} - ${endTimeStr} WIB)`
+                  : (startTimeStr && startTimeStr !== '00:00' ? ` (${startTimeStr} WIB)` : '');
+
+                return `${a.title}${timeDisplay}`;
+            });
+
+            messages.push(`Agenda Hari Ini: ${agendaDescriptions.join(' • ')}`);
         } else {
             messages.push('Tidak ada agenda yang terjadwal untuk hari ini.');
         }

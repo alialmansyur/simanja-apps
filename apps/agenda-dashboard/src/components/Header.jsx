@@ -9,10 +9,13 @@ const Header = ({ onRefresh, isRefreshing, settings, lastUpdated }) => {
   const [showShortcuts, setShowShortcuts] = useState(false);
 
   useEffect(() => {
-    // Check initial system/localStorage preference
-    if (document.documentElement.classList.contains('dark') || window.matchMedia('(prefers-color-scheme: dark)').matches) {
+    const savedTheme = localStorage.getItem('theme');
+    if (savedTheme === 'dark') {
       setIsDarkMode(true);
       document.documentElement.classList.add('dark');
+    } else {
+      setIsDarkMode(false);
+      document.documentElement.classList.remove('dark');
     }
     
     // Listen for fullscreen changes
@@ -27,9 +30,11 @@ const Header = ({ onRefresh, isRefreshing, settings, lastUpdated }) => {
     if (isDarkMode) {
       document.documentElement.classList.remove('dark');
       setIsDarkMode(false);
+      localStorage.setItem('theme', 'light');
     } else {
       document.documentElement.classList.add('dark');
       setIsDarkMode(true);
+      localStorage.setItem('theme', 'dark');
     }
   };
 
@@ -46,22 +51,13 @@ const Header = ({ onRefresh, isRefreshing, settings, lastUpdated }) => {
   return (
     <header className="bg-white/90 backdrop-blur-md dark:bg-slate-900/90 border-b border-slate-200/80 dark:border-slate-800/80 shadow-sm h-16 flex items-center justify-between px-6 z-20 relative">
       <div className="flex items-center space-x-4">
-        {settings?.['app.logo'] ? (
-           <motion.img
-             whileHover={{ scale: 1.04 }}
-             src={settings['app.logo'].startsWith('http') ? settings['app.logo'] : `${import.meta.env.VITE_API_BASE_URL?.replace('/api', '') || 'http://localhost:8000'}/storage/${settings['app.logo']}`}
-             alt="Logo"
-             className="flex h-9 w-9 shrink-0 items-center justify-center rounded-[1.25em] object-contain bg-white"
-           />
-        ) : (
-          <motion.div
-            whileHover={{ scale: 1.04 }}
-            className="flex h-9 w-9 shrink-0 items-center justify-center rounded-[1.25em] bg-gradient-to-br from-blue-600 via-blue-500 to-indigo-500 text-xs font-bold text-white uppercase"
-          >
-            {(settings?.['app.short_name'] || 'SM').substring(0, 2)}
-          </motion.div>
-        )}
-        <h1 className="text-2xl font-extrabold text-blue-700 dark:text-blue-500 tracking-tight">
+        <motion.img
+          whileHover={{ scale: 1.04 }}
+          src="/favicon.png"
+          alt="Logo"
+          className="flex h-9 w-9 shrink-0 items-center justify-center rounded-[1.25em] object-contain bg-white shadow-xs"
+        />
+        <h1 className="text-2xl font-bold text-slate-900 dark:text-white tracking-tight">
           SIMANJA
         </h1>
         <div className="h-6 w-px bg-slate-300 dark:bg-slate-700 hidden sm:block"></div>

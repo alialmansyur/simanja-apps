@@ -51,21 +51,12 @@ const Sidebar = ({
       >
         <div className="relative flex h-[4.5rem] items-center border-b border-slate-200 px-4 dark:border-slate-800">
           <div className={cn('flex w-full items-center', isCollapsed ? 'justify-center' : 'gap-3 min-w-0')}>
-            {settings['app.logo'] ? (
-               <motion.img
-                 whileHover={{ scale: 1.04 }}
-                 src={`http://localhost:8000/storage/${settings['app.logo']}`}
-                 alt="Logo"
-                 className="flex h-9 w-9 shrink-0 items-center justify-center rounded-[1.25em] object-contain bg-white"
-               />
-            ) : (
-              <motion.div
-                whileHover={{ scale: 1.04 }}
-                className="flex h-9 w-9 shrink-0 items-center justify-center rounded-[1.25em] bg-gradient-to-br from-blue-600 via-blue-500 to-indigo-500 text-xs font-bold text-white uppercase"
-              >
-                {shortName.substring(0, 2)}
-              </motion.div>
-            )}
+            <motion.img
+              whileHover={{ scale: 1.04 }}
+              src="/favicon.png"
+              alt="Logo"
+              className="flex h-9 w-9 shrink-0 items-center justify-center rounded-[1.25em] object-contain bg-white shadow-xs"
+            />
 
             <AnimatePresence initial={false}>
               {!isCollapsed && (
@@ -75,10 +66,10 @@ const Sidebar = ({
                   exit={{ opacity: 0, x: -8 }}
                   className="min-w-0"
                 >
-                  <p className="truncate text-lg font-bold text-slate-900 dark:text-white">
-                    {shortName}
-                  </p>
-                  <p className="truncate text-sm font-medium text-slate-500 dark:text-slate-400">
+                  <h1 className="truncate text-xl font-bold text-slate-900 dark:text-white tracking-tight">
+                    SIMANJA
+                  </h1>
+                  <p className="truncate text-xs font-medium text-slate-500 dark:text-slate-400">
                     Admin Panel
                   </p>
                 </motion.div>
@@ -100,7 +91,7 @@ const Sidebar = ({
                 return (
                 <div key={group.label} className="space-y-1">
                   {!isCollapsed && (
-                    <p className="mb-2 px-2 text-[10px] font-semibold uppercase tracking-[0.22em] text-slate-400 dark:text-slate-500">
+                    <p className="mb-2 px-2 text-[11px] font-bold uppercase tracking-[0.15em] text-slate-400 dark:text-slate-500">
                       {group.label}
                     </p>
                   )}
@@ -127,11 +118,11 @@ const Sidebar = ({
                           className={({ isActive }) =>
                             cn(
                               'group flex items-center text-base font-semibold transition-all duration-200',
-                              isCollapsed ? 'justify-center px-2.5 py-2.5' : 'gap-2.5 rounded-xl px-3 py-2',
+                              isCollapsed ? 'justify-center px-2.5 py-2.5' : 'gap-3 rounded-xl px-3.5 py-2.5',
                               isActive && (isCollapsed ? 'p-3' : 'px-4 py-3'),
                               isActive
-                                ? (isCollapsed ? 'text-blue-600 dark:text-blue-400' : 'bg-gradient-to-r from-blue-600 to-blue-500 text-white')
-                                : 'text-slate-600 hover:bg-slate-100 hover:text-slate-900 dark:text-slate-400 dark:hover:bg-slate-800 dark:hover:text-slate-50'
+                                ? (isCollapsed ? 'text-blue-600 dark:text-blue-400 font-bold' : 'bg-gradient-to-r from-blue-600 to-blue-500 text-white shadow-sm font-bold')
+                                : 'text-slate-700 hover:bg-slate-100 hover:text-slate-900 dark:text-slate-300 dark:hover:bg-slate-800 dark:hover:text-white font-semibold'
                             )
                           }
                         >
@@ -145,21 +136,21 @@ const Sidebar = ({
                                       ? 'text-blue-600 dark:text-blue-400'
                                       : 'text-white')
                                     : (isCollapsed
-                                      ? 'text-slate-500 dark:text-slate-300'
-                                      : 'text-slate-500 dark:text-slate-300')
+                                      ? 'text-slate-500 dark:text-slate-400'
+                                      : 'text-slate-500 dark:text-slate-400')
                                 )}
                               >
-                                <Icon size={17} />
+                                <Icon size={20} strokeWidth={2} />
                               </span>
 
                               {!isCollapsed && (
                                 <span className="flex flex-1 items-center justify-between gap-3">
-                                  <span className="font-semibold">{item.label}</span>
+                                  <span className="font-semibold tracking-tight text-[16px]">{item.label}</span>
                                   <span className="flex items-center gap-2">
                                     {item.badge && (
                                       <span
                                         className={cn(
-                                          'rounded-full px-2 py-0.5 text-[11px] font-semibold',
+                                          'rounded-full px-2 py-0.5 text-xs font-semibold',
                                           isActive
                                             ? 'bg-white/20 text-white'
                                             : 'bg-orange-100 text-orange-600 dark:bg-orange-900/40 dark:text-orange-300'

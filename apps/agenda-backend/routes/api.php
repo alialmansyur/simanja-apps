@@ -108,4 +108,5 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::get('/references/employee-availability', [ReferenceController::class, 'getEmployeeAvailability']);
     Route::get('/references/room-availability', [ReferenceController::class, 'getRoomAvailability']);
     Route::get('/references/agenda-categories', [ReferenceController::class, 'getAgendaCategories']);
+    Route::get('/references/instansi', [ReferenceController::class, 'getInstansi']);
 });

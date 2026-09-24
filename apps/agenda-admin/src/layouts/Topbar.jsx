@@ -23,9 +23,12 @@ const Topbar = ({ toggleSidebar, toggleSidebarCollapsed, userProfile, onLogout }
 
   useEffect(() => {
     const savedTheme = localStorage.getItem('theme');
-    if (savedTheme === 'dark' || (!savedTheme && (document.documentElement.classList.contains('dark') || window.matchMedia('(prefers-color-scheme: dark)').matches))) {
+    if (savedTheme === 'dark') {
       setIsDarkMode(true);
       document.documentElement.classList.add('dark');
+    } else {
+      setIsDarkMode(false);
+      document.documentElement.classList.remove('dark');
     }
   }, []);
 
@@ -134,7 +137,7 @@ const Topbar = ({ toggleSidebar, toggleSidebarCollapsed, userProfile, onLogout }
               animate={{ opacity: 1, x: 0 }}
               className="min-w-0"
             >
-              <h2 className="truncate text-lg font-bold text-slate-900 dark:text-slate-100">
+              <h2 className="truncate text-lg sm:text-xl font-semibold text-slate-800 dark:text-slate-100 tracking-tight">
                 {pageMeta.label}
               </h2>
             </motion.div>
@@ -150,7 +153,7 @@ const Topbar = ({ toggleSidebar, toggleSidebarCollapsed, userProfile, onLogout }
                 type="search"
                 placeholder="Cari menu atau halaman..."
                 icon={Search}
-                className="h-10 w-72 rounded-[1.25em] border-slate-200 bg-white/90 pl-11 text-sm focus:ring-blue-500/10 dark:border-slate-800 dark:bg-slate-900"
+                className="h-10 w-72 rounded-[1.25em] border-slate-200 bg-white/90 pl-11 text-sm font-normal text-slate-700 placeholder:font-normal placeholder:text-slate-400 focus:ring-blue-500/10 dark:border-slate-800 dark:bg-slate-900 dark:text-slate-300"
               />
             </motion.div>
 
@@ -225,14 +228,14 @@ const Topbar = ({ toggleSidebar, toggleSidebarCollapsed, userProfile, onLogout }
                 onClick={() => setIsProfileDropdownOpen(!isProfileDropdownOpen)}
               >
                 <div className="hidden text-right sm:block">
-                  <p className="text-sm font-semibold leading-none text-slate-700 dark:text-slate-200">
+                  <p className="text-sm font-bold leading-none text-slate-900 dark:text-white tracking-tight">
                     {userProfile.name}
                   </p>
-                  <p className="mt-1 text-xs text-slate-500 dark:text-slate-400">
+                  <p className="mt-1 text-xs font-semibold text-slate-500 dark:text-slate-400">
                     {userProfile.role}
                   </p>
                 </div>
-                <div className="flex h-10 w-10 items-center justify-center rounded-[1.25em] bg-gradient-to-br from-blue-600 to-blue-500 font-bold text-white">
+                <div className="flex h-10 w-10 items-center justify-center rounded-[1.25em] bg-gradient-to-br from-blue-600 to-blue-500 font-extrabold text-white">
                   <span className="sm:hidden">
                     <User size={17} />
                   </span>

@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Api;
 use App\Http\Controllers\Controller;
 use App\Models\Agenda;
 use App\Models\Unit;
+use App\Services\AgendaValidationService;
 use Illuminate\Http\Request;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Support\Str;
@@ -48,6 +49,7 @@ class UnitController extends Controller
             ->leftJoin('ref_event_types', 'trx_agendas.ref_event_type_id', '=', 'ref_event_types.id')
             ->leftJoin('ref_pegawai', 'trx_agendas.pic_employee_id', '=', 'ref_pegawai.id')
             ->leftJoin('ref_statuses', 'trx_agendas.ref_status_id', '=', 'ref_statuses.id')
+            ->leftJoin('ref_instansi', 'trx_agendas.ref_instansi_id', '=', 'ref_instansi.id')
               ->leftJoin('auth_users', 'trx_agendas.created_by', '=', 'auth_users.id')
               ->leftJoin('ref_pegawai as creator_employee', 'auth_users.ref_employee_id', '=', 'creator_employee.id')
             ->where('trx_agendas.ref_unit_id', $unit->id)
@@ -71,6 +73,9 @@ class UnitController extends Controller
                 'trx_agendas.publish_type',
                 'trx_agendas.created_by',
                 'trx_agendas.ref_unit_id',
+                'trx_agendas.ref_instansi_id',
+                'ref_instansi.nama as instansi_name',
+                'ref_instansi.kodeins as instansi_code',
                 'ref_agenda_categories.name as category_name',
                 'ref_event_types.name as event_type_name',
                 'ref_pegawai.nama as pic_name',
@@ -206,6 +211,9 @@ class UnitController extends Controller
                 'creatorName' => $agenda->creator_name,
                 'creatorNip' => $agenda->creator_nip,
                 'refUnitId' => $agenda->ref_unit_id,
+                'instansiId' => $agenda->ref_instansi_id,
+                'instansiName' => $agenda->instansi_name,
+                'instansiCode' => $agenda->instansi_code,
                 'participants' => $participants[$agenda->id] ?? [],
                 'rooms' => $agenda->rooms->map(function($room) {
                     return [
@@ -264,6 +272,7 @@ class UnitController extends Controller
             'officers.*.positionId' => 'required_with:officers|integer',
             
             // Meta
+            'instansiId' => 'nullable|integer|exists:ref_instansi,id',
             'stNumber' => 'nullable|string',
             'ndNumber' => 'nullable|string',
             'description' => 'nullable|string',
@@ -273,21 +282,27 @@ class UnitController extends Controller
         $category = DB::table('ref_agenda_categories')->where('name', $validated['category'])->first();
         $categoryId = $category ? $category->id : null;
 
-        // Duplicate Validation Check (Unit + Kegiatan + Tanggal)
-        if ($categoryId && $validated['startDate']) {
-            $duplicateQuery = DB::table('trx_agendas')
-                ->where('ref_unit_id', $unit->id)
-                ->where('ref_agenda_category_id', $categoryId)
-                ->where('start_date', $validated['startDate'])
-                ->whereNull('deleted_at');
-                
-            $exists = $duplicateQuery->exists();
-            if ($exists) {
-                return response()->json([
-                    'message' => 'Agenda dengan Unit, Kategori Kegiatan, dan Tanggal yang sama sudah ada.',
-                    'error' => 'Duplicate Agenda'
-                ], 422);
-            }
+        // Duplicate Validation Check (Unit + Category + Date Range + Location)
+        $validationService = app(AgendaValidationService::class);
+        $duplicateError = $validationService->checkDuplicate(
+            unitId: $unit->id,
+            categoryId: $categoryId,
+            startDate: $validated['startDate'],
+            endDate: $validated['endDate'] ?? $validated['startDate'],
+            startTime: $validated['startTime'] ?? null,
+            endTime: $validated['endTime'] ?? null,
+            isOnline: (bool)$validated['isOnline'],
+            roomIds: $validated['roomIds'] ?? [],
+            offlineLocation: $validated['offlineLocation'] ?? null,
+            onlineMeetingId: $validated['onlineMeetingId'] ?? null,
+            onlineUrl: $validated['onlineUrl'] ?? null
+        );
+
+        if ($duplicateError) {
+            return response()->json([
+                'message' => $duplicateError,
+                'error' => 'Duplicate Agenda'
+            ], 422);
         }
 
         $status = DB::table('ref_statuses')->where('name', $validated['status'])->first();
@@ -298,6 +313,7 @@ class UnitController extends Controller
             $id = DB::table('trx_agendas')->insertGetId([
                 'title' => $validated['title'],
                 'ref_unit_id' => $unit->id,
+                'ref_instansi_id' => $validated['instansiId'] ?? null,
                 'ref_agenda_category_id' => $categoryId,
                 'ref_status_id' => $statusId,
                 'ref_event_type_id' => $validated['eventTypeId'] ?? null,

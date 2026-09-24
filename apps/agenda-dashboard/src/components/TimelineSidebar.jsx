@@ -1,17 +1,60 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { MapPin, Clock, CalendarX } from 'lucide-react';
 import moment from 'moment';
 
+const isEventOngoingNow = (event, now) => {
+  if (!event) return false;
+  
+  // 1. Date Range Check: today is within [start_date, end_date]
+  const todayStr = moment(now).format('YYYY-MM-DD');
+  const startDateStr = event.start_date_raw || moment(event.start).format('YYYY-MM-DD');
+  const endDateStr = event.end_date_raw || moment(event.end || event.start).format('YYYY-MM-DD');
+
+  if (todayStr < startDateStr || todayStr > endDateStr) {
+    return false;
+  }
+
+  // 2. Daily Operational Hours Check
+  const currentTimeStr = moment(now).format('HH:mm:ss');
+  const startTimeStr = event.start_time_raw || (event.start ? moment(event.start).format('HH:mm:ss') : null);
+  const endTimeStr = event.end_time_raw || (event.end ? moment(event.end).format('HH:mm:ss') : null);
+
+  // If time is unspecified or whole day (00:00 - 23:59), considered active whole day
+  if (!startTimeStr || !endTimeStr || (startTimeStr === '00:00:00' && endTimeStr === '23:59:59')) {
+    return true;
+  }
+
+  return currentTimeStr >= startTimeStr && currentTimeStr <= endTimeStr;
+};
+
+const isEventPastToday = (event, now) => {
+  if (!event) return false;
+  const todayStr = moment(now).format('YYYY-MM-DD');
+  const endDateStr = event.end_date_raw || moment(event.end || event.start).format('YYYY-MM-DD');
+  
+  if (todayStr > endDateStr) return true;
+  
+  const currentTimeStr = moment(now).format('HH:mm:ss');
+  const endTimeStr = event.end_time_raw || (event.end ? moment(event.end).format('HH:mm:ss') : null);
+  
+  if (!endTimeStr || endTimeStr === '23:59:59') return false;
+  
+  return currentTimeStr > endTimeStr;
+};
+
 const TimelineItem = ({ event, isPast, isCurrent, onClick }) => {
+  const startTimeStr = event.start_time_raw ? event.start_time_raw.substring(0, 5) : moment(event.start).format('HH:mm');
+  const endTimeStr = event.end_time_raw ? event.end_time_raw.substring(0, 5) : moment(event.end).format('HH:mm');
+
   return (
   <div onClick={onClick} className="relative flex group cursor-pointer">
     {/* Left: Time */}
     <div className="w-16 shrink-0 pt-0.5 text-right pr-4">
       <div className={`text-[11px] font-bold ${isPast ? 'text-slate-400 dark:text-slate-500' : 'text-slate-600 dark:text-slate-300'} group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors`}>
-        {moment(event.start).format('HH:mm')}
+        {startTimeStr}
       </div>
       <div className="text-[10px] text-slate-400 dark:text-slate-500 font-medium mt-0.5">
-        {moment(event.end).format('HH:mm')}
+        {endTimeStr}
       </div>
     </div>
 
@@ -43,30 +86,44 @@ const TimelineItem = ({ event, isPast, isCurrent, onClick }) => {
 )};
 
 const TimelineSidebar = ({ events = [], onEventClick }) => {
-  const now = new Date();
+  const [now, setNow] = useState(new Date());
+
+  useEffect(() => {
+    const timer = setInterval(() => {
+      setNow(new Date());
+    }, 30000); // 30 seconds update
+
+    return () => clearInterval(timer);
+  }, []);
+
+  const today = moment(now).startOf('day');
   const todayEvents = events
     .filter(e => {
-      const today = moment(now).startOf('day');
-      const eventStart = moment(e.start).startOf('day');
-      const eventEnd = moment(e.end).startOf('day');
+      if (!e.start) return false;
+      const eventStart = moment(e.start_date_raw || e.start).startOf('day');
+      const eventEnd = moment(e.end_date_raw || e.end || e.start).startOf('day');
       return today.isBetween(eventStart, eventEnd, 'day', '[]');
     })
-    .sort((a, b) => a.start - b.start);
+    .sort((a, b) => {
+      const aTime = a.start_time_raw || moment(a.start).format('HH:mm:ss');
+      const bTime = b.start_time_raw || moment(b.start).format('HH:mm:ss');
+      return aTime.localeCompare(bTime);
+    });
 
-  const currentEvent = todayEvents.find(ev => now >= ev.start && now <= ev.end);
+  const currentEvent = todayEvents.find(ev => isEventOngoingNow(ev, now));
 
   return (
-    <div className="w-full xl:w-80 2xl:w-96 bg-slate-50 dark:bg-slate-900/50 border-t xl:border-t-0 xl:border-r border-slate-200 dark:border-slate-800 flex flex-col overflow-hidden shrink-0 max-h-[60vh] xl:max-h-none">
-      <div className="px-6 py-5 border-b border-slate-200 dark:border-slate-800 bg-white/50 dark:bg-slate-900/80 sticky top-0 z-10 backdrop-blur-md">
+    <div className="w-full xl:w-80 2xl:w-96 bg-slate-50 dark:bg-slate-900/50 border-b xl:border-b-0 xl:border-r border-slate-200 dark:border-slate-800 flex flex-col shrink-0">
+      <div className="px-6 py-5 border-b border-slate-200 dark:border-slate-800 bg-white/50 dark:bg-slate-900/80 xl:sticky xl:top-0 z-10 backdrop-blur-md">
         <h2 className="text-xl font-bold text-slate-800 dark:text-slate-100">Agenda Hari Ini</h2>
         <p className="text-sm text-slate-500 dark:text-slate-400 mt-1">Anda memiliki {todayEvents.length} agenda dijadwalkan</p>
       </div>
       
-      <div className="flex-1 overflow-y-auto p-6 scrollbar-hide">
+      <div className="p-6 xl:flex-1 xl:overflow-y-auto scrollbar-hide">
         {currentEvent && (
           <div 
             onClick={() => onEventClick(currentEvent)}
-            className="mb-8 p-6 rounded-2xl bg-blue-600 dark:bg-blue-600 text-white border border-blue-500 cursor-pointer hover:bg-blue-700 hover:-translate-y-1 transition-all duration-300 relative overflow-hidden group"
+            className="mb-8 p-6 rounded-2xl bg-blue-600 dark:bg-blue-600 text-white border border-blue-500 cursor-pointer hover:bg-blue-700 hover:-translate-y-1 transition-all duration-300 relative overflow-hidden group shadow-lg shadow-blue-500/20"
           >
             <div className="absolute -top-4 -right-4 p-4 opacity-10 group-hover:scale-110 group-hover:rotate-6 group-hover:opacity-20 transition-all duration-500 pointer-events-none transform rotate-12">
                <Clock size={100} />
@@ -79,8 +136,11 @@ const TimelineSidebar = ({ events = [], onEventClick }) => {
               <span className="text-xs font-bold uppercase tracking-widest text-blue-100">Sedang Berlangsung</span>
             </div>
             
-            <div className="text-4xl font-black mb-2 tracking-tighter relative z-10">
-              {moment(currentEvent.start).format('HH:mm')} <span className="text-2xl text-blue-300 font-bold mx-1">-</span> {moment(currentEvent.end).format('HH:mm')}
+            <div className="text-3xl font-bold mb-2.5 tracking-normal text-white relative z-10 flex items-baseline flex-wrap">
+              <span className="tracking-wider">{currentEvent.start_time_raw ? currentEvent.start_time_raw.substring(0, 5) : moment(currentEvent.start).format('HH:mm')}</span>
+              <span className="text-xl text-blue-200 font-normal mx-2">-</span>
+              <span className="tracking-wider">{currentEvent.end_time_raw ? currentEvent.end_time_raw.substring(0, 5) : moment(currentEvent.end).format('HH:mm')}</span>
+              <span className="text-xs font-semibold text-blue-100 uppercase ml-2 tracking-wider">WIB</span>
             </div>
             <div className="font-bold text-lg text-white leading-tight mb-3 relative z-10">
               {currentEvent.title}
@@ -103,8 +163,8 @@ const TimelineSidebar = ({ events = [], onEventClick }) => {
         ) : (
           <div className="relative pt-2">
             {todayEvents.map((ev) => {
-              const isPast = now > ev.end;
-              const isCurrent = now >= ev.start && now <= ev.end;
+              const isPast = isEventPastToday(ev, now);
+              const isCurrent = isEventOngoingNow(ev, now);
               return <TimelineItem key={ev.id} event={ev} isPast={isPast} isCurrent={isCurrent} onClick={() => onEventClick(ev)} />
             })}
           </div>
