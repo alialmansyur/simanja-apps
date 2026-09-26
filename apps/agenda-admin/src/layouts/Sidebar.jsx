@@ -101,7 +101,8 @@ const Sidebar = ({
                     const delayIndex = groupIndex * 0.06 + itemIndex * 0.04;
 
                     if (item.isExternal) {
-                      const externalUrl = (import.meta.env.VITE_API_BASE_URL ? import.meta.env.VITE_API_BASE_URL.replace(/\/api\/?$/, '') : 'http://localhost:8000') + item.path;
+                      const baseApi = (import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000/api').replace(/\/+$/, '');
+                      const externalUrl = `${baseApi}/${item.path.replace(/^\/+/, '')}`;
                       return (
                         <motion.div
                           key={item.path}
@@ -112,6 +113,7 @@ const Sidebar = ({
                           whileHover="hover"
                           whileTap="tap"
                         >
+
                           <a
                             href={externalUrl}
                             target="_blank"

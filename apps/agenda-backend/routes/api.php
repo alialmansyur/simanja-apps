@@ -10,10 +10,34 @@ use App\Http\Controllers\Api\AgendaController;
 use App\Http\Controllers\Api\MasterDataController;
 use App\Http\Controllers\Api\DashboardController;
 
+use Dedoc\Scramble\Scramble;
+use Dedoc\Scramble\CacheableGenerator;
+
 Route::post('/login', [AuthController::class, 'login'])->name('login');
+
+// Scramble API Documentation (supports /api/docs/api and /docs/api)
+Route::middleware([\App\Http\Middleware\AuthorizeDocsAccess::class])->group(function () {
+    Route::get('docs/api', function (CacheableGenerator $generator) {
+        $config = Scramble::getGeneratorConfig('default');
+        $result = $generator->generate($config);
+
+        return view($config->renderer()->view, [
+            'spec' => $result->spec(),
+            'config' => $config,
+            'result' => $result,
+        ]);
+    });
+
+    Route::get('docs/api.json', function (CacheableGenerator $generator) {
+        $config = Scramble::getGeneratorConfig('default');
+
+        return response()->json($generator($config), options: JSON_PRETTY_PRINT);
+    });
+});
 
 // Public Settings
 Route::get('settings/public', [\App\Http\Controllers\Api\SettingController::class, 'publicSettings']);
+
 
 // Public Dashboard
 Route::prefix('public/dashboard')->group(function () {
