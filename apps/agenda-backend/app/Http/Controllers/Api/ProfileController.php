@@ -38,9 +38,10 @@ class ProfileController extends Controller
                 'string',
                 'email',
                 'max:255',
-                Rule::unique('auth_users')->ignore($user->id),
+                Rule::unique('auth_users')->ignore($user?->id),
             ],
             'phone' => 'nullable|string|max:50',
+
             'address' => 'nullable|string',
         ]);
 

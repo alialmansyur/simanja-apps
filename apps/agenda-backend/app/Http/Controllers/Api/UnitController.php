@@ -42,9 +42,18 @@ class UnitController extends Controller
         ]);
     }
 
+    /**
+     * Daftar Agenda per Unit
+     * 
+     * Mengambil daftar agenda kegiatan pada unit kerja tertentu.
+     * 
+     * @tag Agenda
+     */
     public function agendas(Request $request, Unit $unit): JsonResponse
+
     {
         $query = Agenda::visibleTo($request->user())
+
             ->leftJoin('ref_agenda_categories', 'trx_agendas.ref_agenda_category_id', '=', 'ref_agenda_categories.id')
             ->leftJoin('ref_event_types', 'trx_agendas.ref_event_type_id', '=', 'ref_event_types.id')
             ->leftJoin('ref_pegawai', 'trx_agendas.pic_employee_id', '=', 'ref_pegawai.id')
@@ -238,9 +247,18 @@ class UnitController extends Controller
         ]);
     }
 
+    /**
+     * Buat Agenda Baru per Unit
+     * 
+     * Endpoint untuk membuat dan menjadwalkan agenda kegiatan baru pada unit kerja tertentu.
+     * 
+     * @tag Agenda
+     */
     public function storeAgenda(Request $request, Unit $unit): JsonResponse
+
     {
         $validated = $request->validate([
+
             'title' => 'required|string|max:255',
             'category' => 'required|string',
             'status' => 'required|string',

@@ -9,6 +9,7 @@ import {
   KeyRound,
   Database,
   Settings,
+  BookOpen,
 } from 'lucide-react';
 
 export const adminNavigationGroups = [
@@ -39,9 +40,11 @@ export const adminNavigationGroups = [
     label: 'Sistem',
     items: [
       { icon: Settings, label: 'Pengaturan', path: '/admin/settings', permission: 'view_settings' },
+      { icon: BookOpen, label: 'API Docs', path: '/docs/api', isExternal: true, permission: 'view_settings' },
     ],
   },
 ];
+
 
 export const adminNavigationItems = adminNavigationGroups.flatMap((group) => group.items);
 
